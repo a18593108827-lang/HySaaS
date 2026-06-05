@@ -1,34 +1,59 @@
 :root {
-  --bg: oklch(1 0 0);
-  --surface: oklch(0.97 0.008 230);
-  --ink: oklch(0.22 0.03 230);
-  --muted: oklch(0.52 0.02 230);
-  --primary: oklch(0.52 0.14 230);
-  --primary-hover: oklch(0.46 0.14 230);
-  --primary-active: oklch(0.42 0.14 230);
-  --accent: oklch(0.62 0.12 195);
-  --border: oklch(0.88 0.01 230);
-  --border-focus: oklch(0.72 0.08 230);
-  --error: oklch(0.55 0.18 25);
-  --error-bg: oklch(0.97 0.02 25);
-  --panel: oklch(0.28 0.06 230);
-  --panel-ink: oklch(0.92 0.02 230);
-  --panel-muted: oklch(0.78 0.03 230);
-  --sidebar-bg: oklch(0.98 0.006 230);
-  --radius: 10px;
+  --navy: #000b47;
+  --navy-mid: #0a1a6e;
+  --primary: #2d5bff;
+  --primary-hover: #2450e6;
+  --primary-active: #1a45d4;
+  --primary-soft: rgb(45 91 255 / 0.12);
+
+  --bg: #ffffff;
+  --surface: #f4f6fb;
+  --ink: #0b1242;
+  --muted: #64748b;
+  --border: #e5e8f0;
+  --border-focus: #93a8ff;
+
+  --error: #e5484d;
+  --error-bg: #fef2f2;
+
+  --panel: #000b47;
+  --panel-ink: #ffffff;
+  --panel-muted: rgb(255 255 255 / 0.72);
+
+  --sidebar-bg: #000b47;
+  --sidebar-ink: #ffffff;
+  --sidebar-muted: rgb(255 255 255 / 0.62);
+  --sidebar-active: rgb(45 91 255 / 0.22);
+  --sidebar-hover: rgb(255 255 255 / 0.06);
+
+  --radius: 16px;
+  --radius-sm: 12px;
+  --radius-pill: 999px;
+  --shadow-card: 0 4px 24px rgb(0 11 71 / 0.08);
+  --shadow-soft: 0 8px 32px rgb(0 11 71 / 0.12);
   --font: "Plus Jakarta Sans", system-ui, sans-serif;
+
   --z-sticky: 10;
   --z-dropdown: 20;
   --z-modal: 30;
-  --el-color-primary: oklch(0.52 0.14 230);
-  --el-color-primary-light-3: oklch(0.62 0.12 230);
-  --el-color-primary-light-5: oklch(0.72 0.1 230);
-  --el-color-primary-light-7: oklch(0.82 0.08 230);
-  --el-color-primary-light-8: oklch(0.88 0.06 230);
-  --el-color-primary-light-9: oklch(0.94 0.04 230);
-  --el-color-primary-dark-2: oklch(0.46 0.14 230);
+
+  --el-color-primary: #2d5bff;
+  --el-color-primary-light-3: #5c7dff;
+  --el-color-primary-light-5: #8aa3ff;
+  --el-color-primary-light-7: #b8c7ff;
+  --el-color-primary-light-8: #d0daff;
+  --el-color-primary-light-9: #e8edff;
+  --el-color-primary-dark-2: #2450e6;
   --el-font-family: var(--font);
-  --el-border-radius-base: 8px;
+  --el-border-radius-base: 12px;
+  --el-border-radius-round: var(--radius-pill);
+  --el-bg-color: var(--bg);
+  --el-bg-color-page: var(--surface);
+  --el-text-color-primary: var(--ink);
+  --el-text-color-regular: var(--muted);
+  --el-border-color: var(--border);
+  --el-border-color-light: #eef1f7;
+  --el-fill-color-light: var(--surface);
 }
 
 @media (prefers-reduced-motion: reduce) {

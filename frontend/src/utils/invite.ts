@@ -38,7 +38,7 @@ export async function buildInviteLinkData(eventId: number, eventTitle?: string, 
   const qrcodeDataUrl = await QRCode.toDataURL(inviteUrl, {
     width: 240,
     margin: 2,
-    color: { dark: '#1e2530', light: '#ffffff' },
+    color: { dark: '#000b47', light: '#ffffff' },
   })
   return { eventId, eventTitle, token: t, inviteUrl, qrcodeDataUrl }
 }

@@ -121,7 +121,7 @@ async function onSubmit() {
 .brand {
   flex: 0 0 42%;
   max-width: 520px;
-  background: var(--panel);
+  background: linear-gradient(160deg, var(--navy) 0%, var(--navy-mid) 55%, #122d8a 100%);
   color: var(--panel-ink);
   padding: clamp(2rem, 5vw, 3.5rem);
   display: flex;
@@ -131,12 +131,22 @@ async function onSubmit() {
   overflow: hidden;
 }
 
+.brand::before {
+  content: '';
+  position: absolute;
+  inset: -20% auto auto -10%;
+  width: 70%;
+  height: 50%;
+  background: radial-gradient(ellipse at 30% 30%, rgb(45 91 255 / 0.35), transparent 70%);
+  pointer-events: none;
+}
+
 .brand::after {
   content: '';
   position: absolute;
   inset: auto -20% -30% -10%;
   height: 55%;
-  background: radial-gradient(ellipse at 30% 80%, oklch(0.45 0.12 230 / 0.5), transparent 70%);
+  background: radial-gradient(ellipse at 30% 80%, rgb(45 91 255 / 0.28), transparent 70%);
   pointer-events: none;
 }
 
@@ -154,10 +164,11 @@ async function onSubmit() {
 .logo-mark {
   width: 36px;
   height: 36px;
-  border-radius: 9px;
+  border-radius: 10px;
   background: var(--primary);
   display: grid;
   place-items: center;
+  box-shadow: 0 4px 16px rgb(45 91 255 / 0.4);
 }
 
 .logo-mark svg {
@@ -194,11 +205,17 @@ async function onSubmit() {
   align-items: center;
   justify-content: center;
   padding: clamp(1.5rem, 4vw, 3rem);
+  background: var(--surface);
 }
 
 .card {
   width: 100%;
   max-width: 400px;
+  padding: 2rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
 }
 
 .card-header {

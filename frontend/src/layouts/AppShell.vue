@@ -154,8 +154,8 @@ async function onLogout() {
 .sidebar {
   width: 220px;
   flex-shrink: 0;
-  background: var(--sidebar-bg);
-  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--navy) 0%, var(--navy-mid) 100%);
+  border-right: none;
   padding: 1.25rem 0.75rem;
   display: flex;
   flex-direction: column;
@@ -171,10 +171,11 @@ async function onLogout() {
 .logo-mark {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--primary);
   display: grid;
   place-items: center;
+  box-shadow: 0 4px 12px rgb(45 91 255 / 0.35);
 }
 
 .logo-mark svg {
@@ -186,11 +187,12 @@ async function onLogout() {
   font-weight: 700;
   font-size: 1rem;
   letter-spacing: -0.02em;
+  color: var(--sidebar-ink);
 }
 
 .sidebar-title {
   font-size: 0.75rem;
-  color: var(--muted);
+  color: var(--sidebar-muted);
   padding: 0 0.75rem;
   margin: 0 0 0.75rem;
 }
@@ -205,12 +207,12 @@ async function onLogout() {
   display: block;
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--ink);
+  color: var(--sidebar-muted);
   text-decoration: none;
-  transition: background 0.15s ease-out;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
   border: none;
   background: none;
   font: inherit;
@@ -229,7 +231,7 @@ async function onLogout() {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  color: var(--muted);
+  color: var(--sidebar-muted);
   transition: transform 0.15s ease-out;
 }
 
@@ -238,13 +240,14 @@ async function onLogout() {
 }
 
 .nav-item:hover {
-  background: var(--surface);
+  background: var(--sidebar-hover);
+  color: var(--sidebar-ink);
 }
 
 .nav-item.active,
 .nav-item.section-open {
-  background: oklch(0.52 0.14 230 / 0.1);
-  color: var(--primary);
+  background: var(--sidebar-active);
+  color: var(--sidebar-ink);
 }
 
 .nav-sub {
@@ -253,29 +256,29 @@ async function onLogout() {
   gap: 2px;
   margin: 2px 0 4px;
   padding-left: 0.625rem;
-  border-left: 2px solid var(--border);
+  border-left: 2px solid rgb(255 255 255 / 0.12);
   margin-left: 0.75rem;
 }
 
 .nav-sub-item {
   display: block;
   padding: 0.4rem 0.625rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--muted);
+  color: var(--sidebar-muted);
   text-decoration: none;
   transition: background 0.15s ease-out, color 0.15s ease-out;
 }
 
 .nav-sub-item:hover:not(.disabled) {
-  color: var(--ink);
-  background: var(--surface);
+  color: var(--sidebar-ink);
+  background: var(--sidebar-hover);
 }
 
 .nav-sub-item.active {
-  background: oklch(0.52 0.14 230 / 0.12);
-  color: var(--primary);
+  background: var(--sidebar-active);
+  color: var(--sidebar-ink);
   font-weight: 600;
 }
 
@@ -303,12 +306,14 @@ async function onLogout() {
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
+  box-shadow: 0 1px 0 rgb(0 11 71 / 0.04);
 }
 
 .page-title {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
+  color: var(--navy);
 }
 
 .user-area {
@@ -326,6 +331,7 @@ async function onLogout() {
   flex: 1;
   padding: 1.5rem;
   overflow: auto;
+  background: var(--surface);
 }
 
 @media (max-width: 768px) {

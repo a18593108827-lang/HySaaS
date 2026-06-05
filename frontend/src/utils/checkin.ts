@@ -38,7 +38,7 @@ export async function buildCheckinQrcode(eventId: number, eventTitle?: string, t
   const qrcodeDataUrl = await QRCode.toDataURL(checkinUrl, {
     width: 280,
     margin: 2,
-    color: { dark: '#1e2530', light: '#ffffff' },
+    color: { dark: '#000b47', light: '#ffffff' },
   })
   return { eventId, eventTitle, token: t, checkinUrl, qrcodeDataUrl }
 }

@@ -15,7 +15,7 @@ body {
   margin: 0;
   font-family: var(--font);
   color: var(--ink);
-  background: var(--bg);
+  background: var(--surface);
   line-height: 1.5;
 }
 
@@ -32,6 +32,7 @@ body {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--ink);
 }
 
 .page-header p {
@@ -57,10 +58,11 @@ body {
 }
 
 .stat-card {
-  padding: 1rem 1.25rem;
-  background: var(--surface);
+  padding: 1.125rem 1.25rem;
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 
 .stat-card .label {
@@ -73,4 +75,43 @@ body {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--navy);
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--primary);
+  --el-button-border-color: var(--primary);
+  --el-button-hover-bg-color: var(--primary-hover);
+  --el-button-hover-border-color: var(--primary-hover);
+  --el-button-active-bg-color: var(--primary-active);
+  --el-button-active-border-color: var(--primary-active);
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+
+.el-button--default {
+  border-radius: var(--radius-pill);
+}
+
+.el-dialog {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+.el-table {
+  --el-table-border-color: var(--border);
+  --el-table-header-bg-color: var(--surface);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.el-input__wrapper,
+.el-select__wrapper {
+  border-radius: var(--radius-sm) !important;
+}
+
+.el-card {
+  border-radius: var(--radius);
+  border-color: var(--border);
+  box-shadow: var(--shadow-card);
 }
