@@ -1,0 +1,41 @@
+:root {
+  --bg: oklch(1 0 0);
+  --surface: oklch(0.97 0.008 230);
+  --ink: oklch(0.22 0.03 230);
+  --muted: oklch(0.52 0.02 230);
+  --primary: oklch(0.52 0.14 230);
+  --primary-hover: oklch(0.46 0.14 230);
+  --primary-active: oklch(0.42 0.14 230);
+  --accent: oklch(0.62 0.12 195);
+  --border: oklch(0.88 0.01 230);
+  --border-focus: oklch(0.72 0.08 230);
+  --error: oklch(0.55 0.18 25);
+  --error-bg: oklch(0.97 0.02 25);
+  --panel: oklch(0.28 0.06 230);
+  --panel-ink: oklch(0.92 0.02 230);
+  --panel-muted: oklch(0.78 0.03 230);
+  --sidebar-bg: oklch(0.98 0.006 230);
+  --radius: 10px;
+  --font: "Plus Jakarta Sans", system-ui, sans-serif;
+  --z-sticky: 10;
+  --z-dropdown: 20;
+  --z-modal: 30;
+  --el-color-primary: oklch(0.52 0.14 230);
+  --el-color-primary-light-3: oklch(0.62 0.12 230);
+  --el-color-primary-light-5: oklch(0.72 0.1 230);
+  --el-color-primary-light-7: oklch(0.82 0.08 230);
+  --el-color-primary-light-8: oklch(0.88 0.06 230);
+  --el-color-primary-light-9: oklch(0.94 0.04 230);
+  --el-color-primary-dark-2: oklch(0.46 0.14 230);
+  --el-font-family: var(--font);
+  --el-border-radius-base: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

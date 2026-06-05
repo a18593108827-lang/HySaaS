@@ -1,0 +1,134 @@
+import request from './request'
+import type { CheckinQrcodeResult, EnterpriseAttendee, EnterpriseAttendeePayload, EnterpriseMember, EnterpriseMemberPayload, EventInviteLinkResult, EventInvitePayload, EventInviteResult, EventItem, HotelInfo, PageResult, PaperSubmission, PayOrder, Registration } from '@/types'
+
+export function getEvents(params?: { page?: number; size?: number }) {
+  return request.get<unknown, PageResult<EventItem>>('/enterprise/events', { params })
+}
+
+export function getEvent(id: number) {
+  return request.get<unknown, EventItem>(`/enterprise/events/${id}`)
+}
+
+export function createEvent(data: Partial<EventItem>) {
+  return request.post('/enterprise/events', data)
+}
+
+export function updateEvent(id: number, data: Partial<EventItem>) {
+  return request.put(`/enterprise/events/${id}`, data)
+}
+
+export function publishEvent(id: number) {
+  return request.post(`/enterprise/events/${id}/publish`)
+}
+
+export function deleteEvent(id: number) {
+  return request.delete(`/enterprise/events/${id}`)
+}
+
+export function generateQrcode(id: number) {
+  return request.post<unknown, CheckinQrcodeResult>(`/enterprise/events/${id}/qrcode`)
+}
+
+export function getRegistrations(eventId: number, params?: { status?: string }) {
+  return request.get<unknown, PageResult<Registration>>(`/enterprise/events/${eventId}/registrations`, { params })
+}
+
+export function auditRegistration(id: number, status: 'APPROVED' | 'REJECTED') {
+  return request.put(`/enterprise/registrations/${id}`, { status })
+}
+
+export function getCheckinList(eventId: number) {
+  return request.get(`/enterprise/events/${eventId}/checkin`)
+}
+
+export function getPapers(params?: { status?: string }) {
+  return request.get<unknown, PageResult<PaperSubmission>>('/enterprise/papers', { params })
+}
+
+export function assignReviewer(paperId: number, expertId: number) {
+  return request.post(`/enterprise/papers/${paperId}/assign`, { expertId })
+}
+
+export function finalizePaper(paperId: number, status: 'ACCEPTED' | 'REJECTED' | 'REVISION') {
+  return request.put(`/enterprise/papers/${paperId}/finalize`, { status })
+}
+
+export function getReviewTasks() {
+  return request.get<unknown, { paperId: number; title: string; author: string; deadline: string }[]>('/enterprise/reviews')
+}
+
+export function submitReview(paperId: number, data: { comment: string; suggest: string }) {
+  return request.post(`/enterprise/reviews/${paperId}`, data)
+}
+
+export function getHotels() {
+  return request.get<unknown, HotelInfo[]>('/enterprise/hotels')
+}
+
+export function getEmailTemplates() {
+  return request.get<unknown, { id: number; code: string; name: string; content: string }[]>('/enterprise/email-templates')
+}
+
+export function updateEmailTemplate(id: number, content: string) {
+  return request.put(`/enterprise/email-templates/${id}`, { content })
+}
+
+export function getOrders(params?: { page?: number }) {
+  return request.get<unknown, PageResult<PayOrder>>('/enterprise/finance/orders', { params })
+}
+
+export function getInvoices(params?: { page?: number }) {
+  return request.get<unknown, { id: number; orderNo: string; title: string; amount: number; status: string; createdAt: string }[]>('/enterprise/finance/invoices', { params })
+}
+
+export function verifyBooking(id: number) {
+  return request.post(`/enterprise/bookings/${id}/checkin`)
+}
+
+export function getMembers(params?: { role?: string; page?: number; size?: number }) {
+  return request.get<unknown, PageResult<EnterpriseMember>>('/enterprise/members', { params })
+}
+
+export function getMember(id: number) {
+  return request.get<unknown, EnterpriseMember>(`/enterprise/members/${id}`)
+}
+
+export function createMember(data: EnterpriseMemberPayload) {
+  return request.post('/enterprise/members', data)
+}
+
+export function updateMember(id: number, data: Partial<EnterpriseMemberPayload>) {
+  return request.put(`/enterprise/members/${id}`, data)
+}
+
+export function deleteMember(id: number) {
+  return request.delete(`/enterprise/members/${id}`)
+}
+
+export function getAttendees(params?: { nickname?: string; page?: number; size?: number }) {
+  return request.get<unknown, PageResult<EnterpriseAttendee>>('/enterprise/attendees', { params })
+}
+
+export function inviteAttendees(eventId: number, data: EventInvitePayload) {
+  return request.post<unknown, EventInviteResult>(`/enterprise/events/${eventId}/invites`, data)
+}
+
+export function generateInviteLink(eventId: number) {
+  return request.post<unknown, EventInviteLinkResult>(`/enterprise/events/${eventId}/invite-link`)
+}
+
+export function getAttendee(id: number) {
+  return request.get<unknown, EnterpriseAttendee>(`/enterprise/attendees/${id}`)
+}
+
+export function createAttendee(data: EnterpriseAttendeePayload) {
+  return request.post('/enterprise/attendees', data)
+}
+
+export function updateAttendee(id: number, data: Partial<EnterpriseAttendeePayload>) {
+  return request.put(`/enterprise/attendees/${id}`, data)
+}
+
+export function deleteAttendee(id: number) {
+  return request.delete(`/enterprise/attendees/${id}`)
+}
