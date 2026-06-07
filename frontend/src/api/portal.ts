@@ -1,5 +1,5 @@
 import request from './request'
-import type { EventItem, PageResult, PaperSubmission, PayOrder } from '@/types'
+import type { EventItem, InvoiceApplyPayload, PageResult, PaperSubmission, PayOrder } from '@/types'
 
 export function getPortalEvents() {
   return request.get<unknown, EventItem[]>('/portal/events')
@@ -45,6 +45,6 @@ export function createPayOrder(data: { bizType: string; bizId: number }) {
   return request.post<unknown, { payUrl: string }>('/portal/pay/create', data)
 }
 
-export function applyInvoice(data: Record<string, string>) {
+export function applyInvoice(data: InvoiceApplyPayload) {
   return request.post('/portal/invoices/apply', data)
 }

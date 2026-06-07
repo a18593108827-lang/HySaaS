@@ -50,7 +50,9 @@
 
 跳转详情时：`eventStore.setActiveEventId(id)` + `setCurrent(row)`；列表加载后 `setList(records)` 供详情页标题回退。
 
-创建成功后默认 `status=DRAFT`，`registrationEnabled/paperEnabled/hotelEnabled=false`。
+新建/编辑弹窗字段：名称、地点、开始/结束时间、开放功能（报名/论文/酒店开关）。
+
+创建成功后默认 `status=DRAFT`，三个开关默认 `false`。开启后参会端 `/portal/events` 显示对应入口。
 
 ### 报名审核 `/enterprise/events/:id/registrations`
 
@@ -104,8 +106,8 @@ axios 拦截器：`code` 为 0 或 200 时返回 `data`。
 |--------|------|------|
 | GET | `/enterprise/events` | 分页列表，`{ records, total }` |
 | GET | `/enterprise/events/{id}` | 单条 `EventItem` |
-| POST | `/enterprise/events` | 创建，body: title(必填), location, startTime, endTime |
-| PUT | `/enterprise/events/{id}` | 更新 |
+| POST | `/enterprise/events` | 创建，body: title(必填), location, startTime, endTime, registrationEnabled?, paperEnabled?, hotelEnabled? |
+| PUT | `/enterprise/events/{id}` | 更新（含三个开关） |
 | DELETE | `/enterprise/events/{id}` | 删除 |
 | POST | `/enterprise/events/{id}/publish` | 发布 DRAFT→PUBLISHED |
 | POST | `/enterprise/events/{id}/qrcode` | 返回 `{ token?, checkinUrl?, qrcodeUrl? }`，前端以 token 为主 |

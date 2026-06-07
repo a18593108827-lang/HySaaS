@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-06-07（五）| 专家列表联调
+
+- 稿件管理分配专家改调 `GET /enterprise/members?role=EXPERT`
+- 仅展示 ENABLED 专家，无专家时提示去成员管理添加
+- 文档：`docs/features/paper.md`
+
+## 2026-06-07（四）| 活动开关
+
+- 活动新建/编辑弹窗增加报名、论文、酒店开关
+- 列表新增「功能」列展示已开启模块
+- 文档：`docs/features/event.md`
+
+## 2026-06-07（三）| 申请发票
+
+- `/portal/orders` 已支付订单可申请发票弹窗
+- API：`POST /portal/invoices/apply`（`InvoiceApplyPayload`）
+- 订单增加 `invoiceStatus` 字段
+- 文档：`docs/features/invoice.md`
+
+## 2026-06-07（二）| 房单核销
+
+- 新增 `/enterprise/bookings` 房单列表 + 核销
+- API：`GET /enterprise/bookings`、`POST /enterprise/bookings/{id}/checkin`
+- 文档：`docs/features/booking.md`
+
 ## 2026-06-07 | 酒店协议
 
 - `/enterprise/hotels` 酒店 CRUD + 房型配额抽屉
@@ -80,6 +105,9 @@
 
 - `GET /portal/events/{id}?token=`
 - `POST /portal/checkin/{eventId}`
+- `GET /portal/orders`
+- `POST /portal/pay/create`
+- `POST /portal/invoices/apply`
 
 **平台端** `frontend/src/api/admin.ts`、`auth.ts`、`public.ts`：
 
@@ -108,3 +136,8 @@
 - `GET/PUT/DELETE /enterprise/hotels/{id}`
 - `GET/POST /enterprise/hotels/{hotelId}/room-types`
 - `PUT/DELETE /enterprise/hotels/{hotelId}/room-types/{id}`
+
+**企业端** `frontend/src/api/enterprise.ts`（房单）：
+
+- `GET /enterprise/bookings`
+- `POST /enterprise/bookings/{id}/checkin`

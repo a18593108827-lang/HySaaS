@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { assignReviewer, finalizePaper, getPapers } from '@/api/enterprise'
-import type { PaperSubmission } from '@/types'
+import { assignReviewer, finalizePaper, getMembers, getPapers } from '@/api/enterprise'
+import type { EnterpriseMember, PaperSubmission } from '@/types'
 
 const loading = ref(false)
 const list = ref<PaperSubmission[]>([])
 const assignDialog = ref(false)
+const expertLoading = ref(false)
 const currentPaper = ref<PaperSubmission | null>(null)
 const expertId = ref<number>()
+const experts = ref<EnterpriseMember[]>([])
 
 const statusLabel: Record<string, string> = {
   DRAFT: '草稿',
@@ -19,6 +21,23 @@ const statusLabel: Record<string, string> = {
   REJECTED: '已拒稿',
   REVISION: '需修改',
   RESUBMITTED: '已重投',
+}
+
+const demoExperts: EnterpriseMember[] = [
+  { id: 3, username: 'expert@test.com', nickname: '评审专家王', roles: ['EXPERT'], status: 'ENABLED', createdAt: '2026-06-02' },
+  { id: 4, username: 'liu@test.com', nickname: '刘研究员', roles: ['EXPERT'], status: 'ENABLED', createdAt: '2026-06-03' },
+]
+
+async function loadExperts() {
+  expertLoading.value = true
+  try {
+    const res = await getMembers({ role: 'EXPERT' })
+    experts.value = res.records.filter((m) => m.status === 'ENABLED')
+  } catch {
+    experts.value = [...demoExperts]
+  } finally {
+    expertLoading.value = false
+  }
 }
 
 async function load() {
@@ -36,20 +55,22 @@ async function load() {
   }
 }
 
-function openAssign(row: PaperSubmission) {
+async function openAssign(row: PaperSubmission) {
   currentPaper.value = row
   expertId.value = undefined
   assignDialog.value = true
+  await loadExperts()
 }
 
 async function handleAssign() {
-  if (!currentPaper.value || !expertId.value) return
+  if (!currentPaper.value) return
+  if (!expertId.value) return ElMessage.warning('请选择专家')
   try {
     await assignReviewer(currentPaper.value.id, expertId.value)
     currentPaper.value.status = 'UNDER_REVIEW'
     ElMessage.success('已分配专家')
   } catch {
-    currentPaper.value!.status = 'UNDER_REVIEW'
+    currentPaper.value.status = 'UNDER_REVIEW'
     ElMessage.success('演示：已分配专家')
   }
   assignDialog.value = false
@@ -98,14 +119,27 @@ onMounted(load)
     </el-table>
 
     <el-dialog v-model="assignDialog" title="分配评审专家" width="400px">
-      <el-select v-model="expertId" placeholder="选择专家" style="width: 100%">
-        <el-option label="王教授" :value="101" />
-        <el-option label="刘研究员" :value="102" />
+      <el-select v-model="expertId" placeholder="选择专家" :loading="expertLoading" style="width: 100%">
+        <el-option v-for="e in experts" :key="e.id" :label="e.nickname" :value="e.id">
+          <span>{{ e.nickname }}</span>
+          <span style="float: right; color: var(--el-text-color-secondary); font-size: 12px">{{ e.username }}</span>
+        </el-option>
       </el-select>
+      <p v-if="!expertLoading && !experts.length" class="empty-hint">
+        暂无专家成员，请先在「成员管理」中添加 EXPERT 角色账号
+      </p>
       <template #footer>
         <el-button @click="assignDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleAssign">确认分配</el-button>
+        <el-button type="primary" :disabled="!experts.length" @click="handleAssign">确认分配</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.empty-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+</style>

@@ -76,6 +76,12 @@ const enterpriseRoutes: RouteRecordRaw[] = [
     meta: { title: '酒店协议' },
   },
   {
+    path: 'bookings',
+    name: 'EnterpriseBookings',
+    component: () => import('@/views/enterprise/BookingsView.vue'),
+    meta: { title: '房单核销' },
+  },
+  {
     path: 'email-templates',
     name: 'EmailTemplates',
     component: () => import('@/views/enterprise/EmailTemplatesView.vue'),

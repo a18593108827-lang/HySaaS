@@ -14,7 +14,25 @@ const loading = ref(false)
 const list = ref<EventItem[]>([])
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
-const form = ref({ title: '', location: '', startTime: '', endTime: '' })
+const form = ref({
+  title: '',
+  location: '',
+  startTime: '',
+  endTime: '',
+  registrationEnabled: false,
+  paperEnabled: false,
+  hotelEnabled: false,
+})
+
+const defaultForm = () => ({
+  title: '',
+  location: '',
+  startTime: '',
+  endTime: '',
+  registrationEnabled: false,
+  paperEnabled: false,
+  hotelEnabled: false,
+})
 const qrcodeVisible = ref(false)
 const qrcodeEvent = ref<EventItem | null>(null)
 const inviteVisible = ref(false)
@@ -66,7 +84,7 @@ function openInvite(row: EventItem) {
 
 function openCreate() {
   editingId.value = null
-  form.value = { title: '', location: '', startTime: '', endTime: '' }
+  form.value = defaultForm()
   dialogVisible.value = true
 }
 
@@ -77,6 +95,9 @@ function openEdit(row: EventItem) {
     location: row.location,
     startTime: row.startTime,
     endTime: row.endTime,
+    registrationEnabled: row.registrationEnabled,
+    paperEnabled: row.paperEnabled,
+    hotelEnabled: row.hotelEnabled,
   }
   dialogVisible.value = true
 }
@@ -101,16 +122,13 @@ async function handleSubmit() {
         id: Date.now(),
         ...form.value,
         status: 'DRAFT',
-        registrationEnabled: false,
-        paperEnabled: false,
-        hotelEnabled: false,
       } as EventItem)
       ElMessage.success('演示：活动已创建')
     }
   }
   dialogVisible.value = false
   editingId.value = null
-  form.value = { title: '', location: '', startTime: '', endTime: '' }
+  form.value = defaultForm()
 }
 
 async function handleDelete(row: EventItem) {
@@ -160,6 +178,13 @@ onMounted(load)
       <el-table-column prop="status" label="状态" width="90">
         <template #default="{ row }">{{ statusMap[row.status] }}</template>
       </el-table-column>
+      <el-table-column label="功能" width="150">
+        <template #default="{ row }">
+          <el-tag v-if="row.registrationEnabled" size="small" style="margin-right: 4px">报名</el-tag>
+          <el-tag v-if="row.paperEnabled" size="small" type="success" style="margin-right: 4px">论文</el-tag>
+          <el-tag v-if="row.hotelEnabled" size="small" type="warning">酒店</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" min-width="460" align="center" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="goRegistrations(row)">报名审核</el-button>
@@ -194,6 +219,13 @@ onMounted(load)
         <el-form-item label="结束">
           <el-date-picker v-model="form.endTime" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
+        <el-form-item label="开放功能">
+          <div class="switch-group">
+            <el-switch v-model="form.registrationEnabled" active-text="报名" />
+            <el-switch v-model="form.paperEnabled" active-text="论文" />
+            <el-switch v-model="form.hotelEnabled" active-text="酒店" />
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -216,3 +248,11 @@ onMounted(load)
     />
   </div>
 </template>
+
+<style scoped>
+.switch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+</style>

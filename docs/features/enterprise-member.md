@@ -56,6 +56,8 @@
 
 单场活动授权（`sys_event_permission`）后续在后端/活动模块扩展，前端暂未单独配置页。
 
+`EXPERT` 角色成员供 [paper.md](./paper.md) 稿件管理「分配专家」使用。
+
 ---
 
 ## API 契约

@@ -175,13 +175,36 @@ export interface HotelRoomTypePayload {
   quota: number
 }
 
+export interface HotelBooking {
+  id: number
+  bookingNo: string
+  eventId: number
+  eventTitle: string
+  guestName: string
+  hotelName: string
+  roomTypeName: string
+  nights: number
+  amount: number
+  status: 'PENDING_PAY' | 'LOCKED' | 'CHECKED_IN' | 'CANCELLED'
+  createdAt: string
+  checkedInAt?: string
+}
+
 export interface PayOrder {
   id: number
   orderNo: string
-  bizType: string
+  bizType: 'REGISTRATION' | 'HOTEL' | string
   amount: number
-  status: string
+  status: 'PENDING' | 'PAID' | 'CLOSED' | 'CANCELLED' | string
+  invoiceStatus?: 'NONE' | 'APPLYING' | 'ISSUED'
   createdAt: string
+}
+
+export interface InvoiceApplyPayload {
+  orderId: number
+  title: string
+  taxNo: string
+  email: string
 }
 
 export interface PageResult<T> {

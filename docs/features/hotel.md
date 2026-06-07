@@ -10,7 +10,8 @@
 
 > 契约源码：`frontend/src/api/enterprise.ts`、`frontend/src/types/index.ts`  
 > 页面源码：`frontend/src/views/enterprise/HotelsView.vue`  
-> 参会预订：`frontend/src/views/portal/HotelsView.vue`
+> 参会预订：`frontend/src/views/portal/HotelsView.vue`  
+> 房单核销：[booking.md](./booking.md)
 
 ## 侧栏与路由
 

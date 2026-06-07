@@ -1,5 +1,5 @@
 import request from './request'
-import type { CheckinQrcodeResult, EnterpriseAttendee, EnterpriseAttendeePayload, EnterpriseMember, EnterpriseMemberPayload, EventInviteLinkResult, EventInvitePayload, EventInviteResult, EventItem, HotelInfo, HotelInfoPayload, HotelRoomType, HotelRoomTypePayload, PageResult, PaperSubmission, PayOrder, Registration } from '@/types'
+import type { CheckinQrcodeResult, EnterpriseAttendee, EnterpriseAttendeePayload, EnterpriseMember, EnterpriseMemberPayload, EventInviteLinkResult, EventInvitePayload, EventInviteResult, EventItem, HotelBooking, HotelInfo, HotelInfoPayload, HotelRoomType, HotelRoomTypePayload, PageResult, PaperSubmission, PayOrder, Registration } from '@/types'
 
 export function getEvents(params?: { page?: number; size?: number }) {
   return request.get<unknown, PageResult<EventItem>>('/enterprise/events', { params })
@@ -111,6 +111,10 @@ export function getOrders(params?: { page?: number }) {
 
 export function getInvoices(params?: { page?: number }) {
   return request.get<unknown, { id: number; orderNo: string; title: string; amount: number; status: string; createdAt: string }[]>('/enterprise/finance/invoices', { params })
+}
+
+export function getBookings(params?: { status?: string; eventId?: number; page?: number; size?: number }) {
+  return request.get<unknown, PageResult<HotelBooking>>('/enterprise/bookings', { params })
 }
 
 export function verifyBooking(id: number) {

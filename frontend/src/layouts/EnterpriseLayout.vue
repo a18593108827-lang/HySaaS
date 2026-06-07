@@ -10,6 +10,7 @@ const nav = computed(() => [
   { path: '/enterprise/papers', label: '稿件管理' },
   { path: '/enterprise/reviews', label: '评审工作台' },
   { path: '/enterprise/hotels', label: '酒店协议' },
+  { path: '/enterprise/bookings', label: '房单核销' },
   { path: '/enterprise/email-templates', label: '邮件模板' },
   { path: '/enterprise/finance/orders', label: '订单' },
   { path: '/enterprise/finance/invoices', label: '发票' },
