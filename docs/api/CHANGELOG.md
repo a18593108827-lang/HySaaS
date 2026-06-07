@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-06-07 | 酒店协议
+
+- `/enterprise/hotels` 酒店 CRUD + 房型配额抽屉
+- API：`GET/POST /enterprise/hotels`、`GET/PUT/DELETE /enterprise/hotels/{id}`
+- 房型：`GET/POST /enterprise/hotels/{hotelId}/room-types`、`PUT/DELETE .../room-types/{id}`
+- 文档：`docs/features/hotel.md`
+
 ## 2026-06-05（七）| 邀请参会
 
 - 活动列表操作列新增「邀请参会」弹窗 `InviteAttendeesDialog`
@@ -94,3 +101,10 @@
 
 - `GET/POST /enterprise/members`
 - `GET/PUT/DELETE /enterprise/members/{id}`
+
+**企业端** `frontend/src/api/enterprise.ts`（酒店）：
+
+- `GET/POST /enterprise/hotels`
+- `GET/PUT/DELETE /enterprise/hotels/{id}`
+- `GET/POST /enterprise/hotels/{hotelId}/room-types`
+- `PUT/DELETE /enterprise/hotels/{hotelId}/room-types/{id}`

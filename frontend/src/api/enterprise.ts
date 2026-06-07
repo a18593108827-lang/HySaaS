@@ -1,5 +1,5 @@
 import request from './request'
-import type { CheckinQrcodeResult, EnterpriseAttendee, EnterpriseAttendeePayload, EnterpriseMember, EnterpriseMemberPayload, EventInviteLinkResult, EventInvitePayload, EventInviteResult, EventItem, HotelInfo, PageResult, PaperSubmission, PayOrder, Registration } from '@/types'
+import type { CheckinQrcodeResult, EnterpriseAttendee, EnterpriseAttendeePayload, EnterpriseMember, EnterpriseMemberPayload, EventInviteLinkResult, EventInvitePayload, EventInviteResult, EventItem, HotelInfo, HotelInfoPayload, HotelRoomType, HotelRoomTypePayload, PageResult, PaperSubmission, PayOrder, Registration } from '@/types'
 
 export function getEvents(params?: { page?: number; size?: number }) {
   return request.get<unknown, PageResult<EventItem>>('/enterprise/events', { params })
@@ -63,6 +63,38 @@ export function submitReview(paperId: number, data: { comment: string; suggest: 
 
 export function getHotels() {
   return request.get<unknown, HotelInfo[]>('/enterprise/hotels')
+}
+
+export function getHotel(id: number) {
+  return request.get<unknown, HotelInfo>(`/enterprise/hotels/${id}`)
+}
+
+export function createHotel(data: HotelInfoPayload) {
+  return request.post('/enterprise/hotels', data)
+}
+
+export function updateHotel(id: number, data: Partial<HotelInfoPayload>) {
+  return request.put(`/enterprise/hotels/${id}`, data)
+}
+
+export function deleteHotel(id: number) {
+  return request.delete(`/enterprise/hotels/${id}`)
+}
+
+export function getHotelRoomTypes(hotelId: number) {
+  return request.get<unknown, HotelRoomType[]>(`/enterprise/hotels/${hotelId}/room-types`)
+}
+
+export function createHotelRoomType(hotelId: number, data: HotelRoomTypePayload) {
+  return request.post(`/enterprise/hotels/${hotelId}/room-types`, data)
+}
+
+export function updateHotelRoomType(hotelId: number, id: number, data: Partial<HotelRoomTypePayload>) {
+  return request.put(`/enterprise/hotels/${hotelId}/room-types/${id}`, data)
+}
+
+export function deleteHotelRoomType(hotelId: number, id: number) {
+  return request.delete(`/enterprise/hotels/${hotelId}/room-types/${id}`)
 }
 
 export function getEmailTemplates() {

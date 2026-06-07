@@ -154,6 +154,27 @@ export interface HotelInfo {
   contactPhone: string
 }
 
+export interface HotelInfoPayload {
+  name: string
+  address: string
+  contactPhone: string
+}
+
+export interface HotelRoomType {
+  id: number
+  hotelId: number
+  name: string
+  price: number
+  quota: number
+  used?: number
+}
+
+export interface HotelRoomTypePayload {
+  name: string
+  price: number
+  quota: number
+}
+
 export interface PayOrder {
   id: number
   orderNo: string
