@@ -1,0 +1,27 @@
+# 本地开发配置，依赖 docker compose up
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/hysaas?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: hysaas
+    password: hysaas123
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+
+redisson:
+  single-server-config:
+    address: redis://localhost:6379
+
+hysaas:
+  minio:
+    endpoint: http://localhost:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+    bucket: hysaas
+
+logging:
+  level:
+    com.hysaas: debug

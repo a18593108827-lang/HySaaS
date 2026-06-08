@@ -14,3 +14,10 @@ dist-ssr/
 *.sw?
 
 frontend/node_modules/.tmp/
+
+target/
+*.class
+*.jar
+*.war
+*.iml
+.mvn/wrapper/maven-wrapper.jar
