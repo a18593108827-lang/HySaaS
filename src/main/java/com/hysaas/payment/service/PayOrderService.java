@@ -1,0 +1,192 @@
+package com.hysaas.payment.service;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hysaas.common.constant.CommonConstants;
+import com.hysaas.common.dto.PageResult;
+import com.hysaas.common.exception.BizException;
+import com.hysaas.hotel.entity.HotelBooking;
+import com.hysaas.hotel.service.HotelService;
+import com.hysaas.payment.dto.PayCreateRequest;
+import com.hysaas.payment.dto.PayCreateResultVO;
+import com.hysaas.payment.dto.PayOrderVO;
+import com.hysaas.payment.entity.PayOrder;
+import com.hysaas.payment.entity.PayTransaction;
+import com.hysaas.payment.mapper.PayOrderMapper;
+import com.hysaas.payment.mapper.PayTransactionMapper;
+import com.hysaas.system.entity.SysUser;
+import com.hysaas.system.support.EnterpriseContext;
+import com.hysaas.system.support.PortalContext;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class PayOrderService {
+
+    private static final long PAY_TIMEOUT_MINUTES = 30;
+
+    private final PayOrderMapper payOrderMapper;
+    private final PayTransactionMapper payTransactionMapper;
+    private final PortalContext portalContext;
+    private final EnterpriseContext enterpriseContext;
+    private final RedissonClient redissonClient;
+    @Lazy
+    private final HotelService hotelService;
+
+    public PageResult<PayOrderVO> portalOrders(Integer page, Integer size) {
+        SysUser user = portalContext.requireAttendee();
+        int pageNum = page == null ? CommonConstants.DEFAULT_PAGE : page;
+        int pageSize = size == null ? CommonConstants.DEFAULT_SIZE : Math.min(size, CommonConstants.MAX_SIZE);
+        Page<PayOrder> result = payOrderMapper.selectPage(new Page<>(pageNum + 1L, pageSize),
+                new LambdaQueryWrapper<PayOrder>()
+                        .eq(PayOrder::getUserId, user.getId())
+                        .orderByDesc(PayOrder::getCreatedAt));
+        List<PayOrderVO> records = result.getRecords().stream().map(this::toVO).toList();
+        return new PageResult<>(records, result.getTotal());
+    }
+
+    public PageResult<PayOrderVO> enterpriseOrders(Integer page, Integer size) {
+        Long tenantId = enterpriseContext.requireTenantId();
+        int pageNum = page == null ? CommonConstants.DEFAULT_PAGE : page;
+        int pageSize = size == null ? CommonConstants.DEFAULT_SIZE : Math.min(size, CommonConstants.MAX_SIZE);
+        Page<PayOrder> result = payOrderMapper.selectPage(new Page<>(pageNum + 1L, pageSize),
+                new LambdaQueryWrapper<PayOrder>()
+                        .eq(PayOrder::getTenantId, tenantId)
+                        .orderByDesc(PayOrder::getCreatedAt));
+        List<PayOrderVO> records = result.getRecords().stream().map(this::toVO).toList();
+        return new PageResult<>(records, result.getTotal());
+    }
+
+    public PayCreateResultVO createPay(PayCreateRequest request) {
+        SysUser user = portalContext.requireAttendee();
+        PayOrder order = payOrderMapper.selectById(request.getBizId());
+        if (order == null || !user.getId().equals(order.getUserId())) {
+            throw new BizException(404, "订单不存在");
+        }
+        if (!"PENDING".equals(order.getStatus())) {
+            throw new BizException("订单状态不可支付");
+        }
+        PayCreateResultVO vo = new PayCreateResultVO();
+        vo.setPayUrl("/api/portal/pay/mock/" + order.getId());
+        return vo;
+    }
+
+    @Transactional
+    public PayOrder createHotelOrder(SysUser user, HotelBooking booking) {
+        PayOrder order = new PayOrder();
+        order.setOrderNo(genOrderNo());
+        order.setTenantId(booking.getTenantId());
+        order.setUserId(user.getId());
+        order.setBizType("HOTEL");
+        order.setBizId(booking.getId());
+        order.setAmount(booking.getAmount());
+        order.setStatus("PENDING");
+        order.setInvoiceStatus("NONE");
+        order.setCreatedAt(LocalDateTime.now());
+        order.setUpdatedAt(LocalDateTime.now());
+        payOrderMapper.insert(order);
+        return order;
+    }
+
+    @Transactional
+    public void mockPay(Long orderId) {
+        SysUser user = portalContext.requireAttendee();
+        PayOrder order = payOrderMapper.selectById(orderId);
+        if (order == null || !user.getId().equals(order.getUserId())) {
+            throw new BizException(404, "订单不存在");
+        }
+        markPaid(order, "MOCK-" + orderId, "mock");
+    }
+
+    @Transactional
+    public String handleAlipayNotify(Map<String, String> params) {
+        String outTradeNo = params.get("out_trade_no");
+        String tradeNo = params.get("trade_no");
+        String tradeStatus = params.get("trade_status");
+        if (!StringUtils.hasText(outTradeNo)) {
+            return "failure";
+        }
+        RLock lock = redissonClient.getLock("pay:notify:" + outTradeNo);
+        try {
+            if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
+                return "failure";
+            }
+            PayOrder order = payOrderMapper.selectOne(new LambdaQueryWrapper<PayOrder>()
+                    .eq(PayOrder::getOrderNo, outTradeNo)
+                    .last("LIMIT 1"));
+            if (order == null) {
+                return "failure";
+            }
+            if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
+                markPaid(order, tradeNo, params.toString());
+            }
+            return "success";
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "failure";
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    @Transactional
+    public int closeExpiredOrders() {
+        LocalDateTime deadline = LocalDateTime.now().minusMinutes(PAY_TIMEOUT_MINUTES);
+        List<PayOrder> orders = payOrderMapper.selectList(new LambdaQueryWrapper<PayOrder>()
+                .eq(PayOrder::getStatus, "PENDING")
+                .lt(PayOrder::getCreatedAt, deadline));
+        for (PayOrder order : orders) {
+            order.setStatus("CLOSED");
+            order.setUpdatedAt(LocalDateTime.now());
+            payOrderMapper.updateById(order);
+            hotelService.onOrderClosed(order);
+        }
+        return orders.size();
+    }
+
+    private void markPaid(PayOrder order, String tradeNo, String notifyData) {
+        if ("PAID".equals(order.getStatus())) {
+            return;
+        }
+        order.setStatus("PAID");
+        order.setUpdatedAt(LocalDateTime.now());
+        payOrderMapper.updateById(order);
+        PayTransaction tx = new PayTransaction();
+        tx.setOrderId(order.getId());
+        tx.setTradeNo(order.getOrderNo());
+        tx.setAlipayTradeNo(tradeNo);
+        tx.setStatus("SUCCESS");
+        tx.setNotifyData(notifyData);
+        tx.setCreatedAt(LocalDateTime.now());
+        payTransactionMapper.insert(tx);
+        hotelService.onPaySuccess(order);
+    }
+
+    private PayOrderVO toVO(PayOrder order) {
+        PayOrderVO vo = new PayOrderVO();
+        BeanUtils.copyProperties(order, vo);
+        return vo;
+    }
+
+    private String genOrderNo() {
+        return "P" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                + (int) (Math.random() * 900 + 100);
+    }
+}
