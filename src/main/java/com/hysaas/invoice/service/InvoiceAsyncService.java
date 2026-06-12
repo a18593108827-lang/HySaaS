@@ -6,7 +6,6 @@ import com.hysaas.invoice.mapper.InvInvoiceMapper;
 import com.hysaas.message.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +18,6 @@ import java.util.Map;
 public class InvoiceAsyncService {
 
     private final InvInvoiceMapper invInvoiceMapper;
-    @Lazy
     private final InvoiceService invoiceService;
     private final EmailService emailService;
 

@@ -1,6 +1,7 @@
 package com.hysaas.hotel.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hysaas.common.constant.CommonConstants;
 import com.hysaas.common.dto.PageResult;
@@ -47,6 +48,7 @@ import java.util.stream.Collectors;
 public class HotelService {
 
     private static final Set<String> PORTAL_EVENT_STATUSES = Set.of("PUBLISHED", "REGISTRATION_OPEN", "REGISTRATION_CLOSED");
+    private static final Set<String> ACTIVE_BOOKING_STATUSES = Set.of("PENDING_PAY", "LOCKED", "CHECKED_IN");
 
     private final HotelInfoMapper hotelInfoMapper;
     private final HotelRoomTypeMapper hotelRoomTypeMapper;
@@ -169,7 +171,7 @@ public class HotelService {
             if (roomType == null) {
                 return null;
             }
-            int remain = q.getTotal() - (q.getUsed() == null ? 0 : q.getUsed());
+            int remain = q.getTotal() - (int) countActiveBookings(eventId, q.getRoomTypeId());
             if (remain <= 0) {
                 return null;
             }
@@ -194,8 +196,9 @@ public class HotelService {
         if (roomType == null) {
             throw new BizException("房型不存在");
         }
-        HotelQuota quota = requireQuota(eventId, roomType.getId());
-        int remain = quota.getTotal() - (quota.getUsed() == null ? 0 : quota.getUsed());
+        HotelQuota quota = lockQuota(eventId, roomType.getId());
+        long active = countActiveBookings(eventId, roomType.getId());
+        int remain = quota.getTotal() - (int) active;
         if (remain < 1) {
             throw new BizException("该房型已无剩余配额");
         }
@@ -263,12 +266,17 @@ public class HotelService {
         if (booking == null || !"PENDING_PAY".equals(booking.getStatus())) {
             return;
         }
+        HotelQuota quota = requireQuota(booking.getEventId(), booking.getRoomTypeId());
+        int updated = hotelQuotaMapper.update(null, new LambdaUpdateWrapper<HotelQuota>()
+                .eq(HotelQuota::getId, quota.getId())
+                .apply("used < total")
+                .setSql("used = used + 1"));
+        if (updated == 0) {
+            throw new BizException("该房型配额已满，无法完成支付");
+        }
         booking.setStatus("LOCKED");
         booking.setUpdatedAt(LocalDateTime.now());
         hotelBookingMapper.updateById(booking);
-        HotelQuota quota = requireQuota(booking.getEventId(), booking.getRoomTypeId());
-        quota.setUsed((quota.getUsed() == null ? 0 : quota.getUsed()) + 1);
-        hotelQuotaMapper.updateById(quota);
     }
 
     @Transactional
@@ -332,6 +340,24 @@ public class HotelService {
             throw new BizException("该活动未配置此房型配额");
         }
         return quota;
+    }
+
+    private HotelQuota lockQuota(Long eventId, Long roomTypeId) {
+        HotelQuota quota = hotelQuotaMapper.selectOne(new LambdaQueryWrapper<HotelQuota>()
+                .eq(HotelQuota::getEventId, eventId)
+                .eq(HotelQuota::getRoomTypeId, roomTypeId)
+                .last("LIMIT 1 FOR UPDATE"));
+        if (quota == null) {
+            throw new BizException("该活动未配置此房型配额");
+        }
+        return quota;
+    }
+
+    private long countActiveBookings(Long eventId, Long roomTypeId) {
+        return hotelBookingMapper.selectCount(new LambdaQueryWrapper<HotelBooking>()
+                .eq(HotelBooking::getEventId, eventId)
+                .eq(HotelBooking::getRoomTypeId, roomTypeId)
+                .in(HotelBooking::getStatus, ACTIVE_BOOKING_STATUSES));
     }
 
     private List<EvtEvent> listHotelEnabledEvents(Long tenantId) {

@@ -12,7 +12,7 @@ import com.hysaas.payment.mapper.PayOrderMapper;
 import com.hysaas.system.entity.SysUser;
 import com.hysaas.system.support.EnterpriseContext;
 import com.hysaas.system.support.PortalContext;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class InvoiceService {
 
     private final InvInvoiceMapper invInvoiceMapper;
@@ -32,6 +31,18 @@ public class InvoiceService {
     private final PortalContext portalContext;
     private final EnterpriseContext enterpriseContext;
     private final InvoiceAsyncService invoiceAsyncService;
+
+    public InvoiceService(InvInvoiceMapper invInvoiceMapper,
+                          PayOrderMapper payOrderMapper,
+                          PortalContext portalContext,
+                          EnterpriseContext enterpriseContext,
+                          @Lazy InvoiceAsyncService invoiceAsyncService) {
+        this.invInvoiceMapper = invInvoiceMapper;
+        this.payOrderMapper = payOrderMapper;
+        this.portalContext = portalContext;
+        this.enterpriseContext = enterpriseContext;
+        this.invoiceAsyncService = invoiceAsyncService;
+    }
 
     @Transactional
     public void apply(InvoiceApplyRequest request) {

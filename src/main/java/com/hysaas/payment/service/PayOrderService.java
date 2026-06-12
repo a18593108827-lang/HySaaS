@@ -17,7 +17,6 @@ import com.hysaas.payment.mapper.PayTransactionMapper;
 import com.hysaas.system.entity.SysUser;
 import com.hysaas.system.support.EnterpriseContext;
 import com.hysaas.system.support.PortalContext;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -35,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class PayOrderService {
 
     private static final long PAY_TIMEOUT_MINUTES = 30;
@@ -45,8 +43,21 @@ public class PayOrderService {
     private final PortalContext portalContext;
     private final EnterpriseContext enterpriseContext;
     private final RedissonClient redissonClient;
-    @Lazy
     private final HotelService hotelService;
+
+    public PayOrderService(PayOrderMapper payOrderMapper,
+                           PayTransactionMapper payTransactionMapper,
+                           PortalContext portalContext,
+                           EnterpriseContext enterpriseContext,
+                           RedissonClient redissonClient,
+                           @Lazy HotelService hotelService) {
+        this.payOrderMapper = payOrderMapper;
+        this.payTransactionMapper = payTransactionMapper;
+        this.portalContext = portalContext;
+        this.enterpriseContext = enterpriseContext;
+        this.redissonClient = redissonClient;
+        this.hotelService = hotelService;
+    }
 
     public PageResult<PayOrderVO> portalOrders(Integer page, Integer size) {
         SysUser user = portalContext.requireAttendee();
