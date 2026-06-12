@@ -2,6 +2,7 @@ package com.hysaas.event.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hysaas.common.exception.BizException;
+import com.hysaas.framework.websocket.CheckinWebSocketHandler;
 import com.hysaas.event.dto.CheckinListVO;
 import com.hysaas.event.dto.CheckinQrcodeResultVO;
 import com.hysaas.event.dto.CheckinRecordVO;
@@ -37,6 +38,7 @@ public class CheckinService {
     private final RegistrationService registrationService;
     private final EnterpriseContext enterpriseContext;
     private final PortalContext portalContext;
+    private final CheckinWebSocketHandler checkinWebSocketHandler;
 
     @Transactional
     public CheckinQrcodeResultVO generateQrcode(Long eventId) {
@@ -90,6 +92,14 @@ public class CheckinService {
         checkin.setUserId(user.getId());
         checkin.setCheckinAt(LocalDateTime.now());
         evtCheckinMapper.insert(checkin);
+        pushCheckinStats(eventId);
+    }
+
+    private void pushCheckinStats(Long eventId) {
+        long total = registrationService.countApprovedByEvent(eventId);
+        long count = evtCheckinMapper.selectCount(new LambdaQueryWrapper<EvtCheckin>()
+                .eq(EvtCheckin::getEventId, eventId));
+        checkinWebSocketHandler.broadcast(eventId, (int) count, (int) total);
     }
 
     private Map<Long, String> loadRegistrationNames(Long eventId, List<EvtCheckin> checkins) {

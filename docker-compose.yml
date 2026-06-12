@@ -17,6 +17,7 @@ services:
       - ./sql/V3__seed_enterprise_roles.sql:/docker-entrypoint-initdb.d/V3__seed_enterprise_roles.sql
       - ./sql/V4__seed_expert.sql:/docker-entrypoint-initdb.d/V4__seed_expert.sql
       - ./sql/V5__hotel_pay_extend.sql:/docker-entrypoint-initdb.d/V5__hotel_pay_extend.sql
+      - ./sql/V6__seed_email_templates.sql:/docker-entrypoint-initdb.d/V6__seed_email_templates.sql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
