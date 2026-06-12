@@ -3,21 +3,44 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/hysaas?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: hysaas
-    password: hysaas123
+    username: root
+    password: 123456
   data:
     redis:
-      host: localhost
+      host: 192.168.187.128
+#      host: localhost
       port: 6379
       database: 0
 
 redisson:
   single-server-config:
-    address: redis://localhost:6379
+    address: redis://192.168.187.128:6379
+#    address: redis://localhost:6379
+
+rocketmq:
+  name-server: 192.168.187.128:9876
+#  name-server: localhost:9876
+  producer:
+    group: hysaas-producer
+    send-message-timeout: 3000
+    retry-times-when-send-failed: 2
+
+xxl:
+  job:
+    admin:
+      addresses: http://192.168.187.128:8088/xxl-job-admin
+#      addresses: http://localhost:8088/xxl-job-admin
+    accessToken: default_token
+    executor:
+      appname: hysaas-executor
+      port: 9999
+      logpath: ./logs/xxl-job
+      logretentiondays: 30
 
 hysaas:
   minio:
-    endpoint: http://localhost:9000
+    endpoint: http://192.168.187.128:9000
+#    endpoint: http://localhost:9000
     access-key: minioadmin
     secret-key: minioadmin
     bucket: hysaas
