@@ -3,9 +3,17 @@ package com.hysaas.server.controller;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import com.hysaas.common.dto.PageResult;
 import com.hysaas.common.result.R;
+import com.hysaas.event.dto.CheckinListVO;
+import com.hysaas.event.dto.CheckinQrcodeResultVO;
+import com.hysaas.event.dto.EventInviteLinkResultVO;
+import com.hysaas.event.dto.EventInviteRequest;
+import com.hysaas.event.dto.EventInviteResultVO;
 import com.hysaas.event.dto.EventItemVO;
 import com.hysaas.event.dto.EventSaveRequest;
+import com.hysaas.event.dto.RegistrationVO;
+import com.hysaas.event.service.CheckinService;
 import com.hysaas.event.service.EventService;
+import com.hysaas.event.service.RegistrationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -25,6 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class EnterpriseEventController {
 
     private final EventService eventService;
+    private final RegistrationService registrationService;
+    private final CheckinService checkinService;
 
     @GetMapping
     public R<PageResult<EventItemVO>> list(@RequestParam(required = false) Integer page,
@@ -56,5 +66,33 @@ public class EnterpriseEventController {
     @PostMapping("/{id}/publish")
     public R<EventItemVO> publish(@PathVariable Long id) {
         return R.ok(eventService.publish(id));
+    }
+
+    @GetMapping("/{eventId}/registrations")
+    public R<PageResult<RegistrationVO>> registrations(@PathVariable Long eventId,
+                                                       @RequestParam(required = false) String status,
+                                                       @RequestParam(required = false) Integer page,
+                                                       @RequestParam(required = false) Integer size) {
+        return R.ok(registrationService.pageByEvent(eventId, status, page, size));
+    }
+
+    @GetMapping("/{eventId}/checkin")
+    public R<CheckinListVO> checkinList(@PathVariable Long eventId) {
+        return R.ok(checkinService.enterpriseList(eventId));
+    }
+
+    @PostMapping("/{id}/qrcode")
+    public R<CheckinQrcodeResultVO> qrcode(@PathVariable Long id) {
+        return R.ok(checkinService.generateQrcode(id));
+    }
+
+    @PostMapping("/{id}/invites")
+    public R<EventInviteResultVO> invites(@PathVariable Long id, @RequestBody EventInviteRequest request) {
+        return R.ok(registrationService.invite(id, request));
+    }
+
+    @PostMapping("/{id}/invite-link")
+    public R<EventInviteLinkResultVO> inviteLink(@PathVariable Long id) {
+        return R.ok(registrationService.generateInviteLink(id));
     }
 }
