@@ -23,7 +23,7 @@ request.interceptors.response.use(
       ElMessage.error(body.message || '请求失败')
       return Promise.reject(body)
     }
-    return body?.data !== undefined ? body : res.data
+    return body?.data !== undefined ? body.data : res.data
   },
   (err: AxiosError<{ message?: string }>) => {
     if (err.response?.status === 401) {
