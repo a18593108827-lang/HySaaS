@@ -86,11 +86,10 @@
 
 ---
 
-## 后端实现建议
+## 后端实现
 
 | 后端 | 说明 |
 |------|------|
 | EnterpriseBookingController | 列表 + 核销 |
-| `hotel_booking` | 关联 event_id、room_type_id、user_id、order_id |
-| 核销 | `LOCKED → CHECKED_IN`，记录 `checked_in_at` |
-| `@SaCheckRole('ADMIN')` 或 EVENT_STAFF | 与会务权限一致 |
+| HotelService | 支付成功 LOCKED、关单 CANCELLED、核销 CHECKED_IN |
+| `hotel_booking` | 关联 event_id、room_type_id、user_id；V5 增 booking_no/nights/checked_in_at |

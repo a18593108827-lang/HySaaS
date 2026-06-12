@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-06-12 | 后端 P6 发票/邮件/WebSocket
+
+- 参会端 `POST /portal/invoices/apply`，票点云回调 `POST /invoice/callback`
+- 企业端 `GET /enterprise/finance/invoices`、`GET/PUT /enterprise/email-templates`
+- 邮件 SMTP 发送 + RocketMQ `hysaas-email-retry` 重试
+- WebSocket `ws://{host}/api/ws/checkin/{eventId}` 签到人数推送
+- 文档：`docs/features/invoice.md`、`email-template.md`，`event.md` 补 WebSocket
+
+## 2026-06-12 | 后端 P5 酒店/支付
+
+- 企业端酒店 CRUD、房单列表/核销、订单 `GET /enterprise/finance/orders`
+- 参会端 `GET/POST /portal/hotels/{eventId}` 预订
+- 支付 `POST /portal/pay/create`、`POST /portal/pay/mock/{orderId}`、`POST /pay/alipay/notify`
+- XXL-JOB `payOrderCloseJob` 超时关单
+- SQL V5 扩展 `hotel_booking`/`pay_order` 字段
+- 文档：`docs/features/hotel.md`、`booking.md`、`payment.md`
+
 ## 2026-06-07（五）| 专家列表联调
 
 - 稿件管理分配专家改调 `GET /enterprise/members?role=EXPERT`
@@ -141,3 +158,25 @@
 
 - `GET /enterprise/bookings`
 - `POST /enterprise/bookings/{id}/checkin`
+
+**企业端** `frontend/src/api/enterprise.ts`（财务/邮件）：
+
+- `GET /enterprise/finance/orders`
+- `GET /enterprise/finance/invoices`
+- `GET /enterprise/email-templates`
+- `PUT /enterprise/email-templates/{id}`
+
+**参会端** `frontend/src/api/portal.ts`（酒店/支付）：
+
+- `GET /portal/hotels/{eventId}`
+- `POST /portal/hotels/{eventId}/book`
+- `POST /portal/pay/mock/{orderId}`
+
+**回调**（无需登录）：
+
+- `POST /pay/alipay/notify`
+- `POST /invoice/callback`
+
+**WebSocket**：
+
+- `ws://{host}/api/ws/checkin/{eventId}`

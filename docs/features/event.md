@@ -64,6 +64,21 @@
 
 - 已签到 / 应到 / 签到率 + 明细表
 - 15s 轮询 `GET /enterprise/events/{eventId}/checkin`
+- 可选 WebSocket 实时推送（见下方）
+
+### WebSocket 签到推送
+
+```
+ws://{host}/api/ws/checkin/{eventId}
+```
+
+参会人签到成功后服务端推送：
+
+```json
+{ "count": 86, "total": 120 }
+```
+
+前端当前仍用轮询；WebSocket 可直接替换 `EventCheckinView` 定时器。
 
 ### 获取二维码（弹窗，无独立路由）
 
@@ -183,13 +198,13 @@ Demo：接口失败时 localStorage 自生成 token，前端本地画图。
 
 ---
 
-## 后端实现建议
+## 后端实现
 
 | 后端 | 前端入口 |
 |------|----------|
-| EventController CRUD/publish/delete | EventsView |
-| EventQrcodeController generate | CheckinQrcodeDialog |
-| EventInviteController | InviteAttendeesDialog |
-| RegistrationController | EventRegistrationsView |
-| CheckinController (enterprise) | EventCheckinView |
+| EnterpriseEventController | EventsView CRUD/publish/delete |
+| EnterpriseEventController | CheckinQrcodeDialog（qrcode） |
+| EnterpriseRegistrationController | EventRegistrationsView、InviteAttendeesDialog |
+| EnterpriseEventController | EventCheckinView（checkin 列表） |
 | PortalCheckinController | CheckinView |
+| CheckinWebSocketHandler | `/ws/checkin/{eventId}` 实时推送 |

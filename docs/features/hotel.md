@@ -11,7 +11,8 @@
 > 契约源码：`frontend/src/api/enterprise.ts`、`frontend/src/types/index.ts`  
 > 页面源码：`frontend/src/views/enterprise/HotelsView.vue`  
 > 参会预订：`frontend/src/views/portal/HotelsView.vue`  
-> 房单核销：[booking.md](./booking.md)
+> 房单核销：[booking.md](./booking.md)  
+> 支付：[payment.md](./payment.md)
 
 ## 侧栏与路由
 
@@ -65,6 +66,15 @@
 | POST | `/enterprise/hotels/{hotelId}/room-types` | 新建 `HotelRoomTypePayload` |
 | PUT | `/enterprise/hotels/{hotelId}/room-types/{id}` | 编辑 |
 | DELETE | `/enterprise/hotels/{hotelId}/room-types/{id}` | 删除 |
+
+### 参会端
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/portal/hotels/{eventId}` | 可订房型列表（含剩余配额） |
+| POST | `/portal/hotels/{eventId}/book` | 预订，body: `{ roomTypeId, nights? }`，自动创建支付订单 |
+
+活动须 `hotelEnabled=true` 且已发布。
 
 ### HotelInfo
 
@@ -121,12 +131,11 @@
 
 ---
 
-## 后端实现建议
+## 后端实现
 
 | 后端 | 说明 |
 |------|------|
-| EnterpriseHotelController | 酒店 CRUD |
-| EnterpriseHotelRoomTypeController 或嵌套路由 | 房型 CRUD |
-| `hotel_info`、`hotel_room_type` | 自动绑定当前 `tenant_id` |
-| `hotel_quota` | 活动级配额扣减，`used` 由预订/支付更新 |
-| `@SaCheckRole('ADMIN')` 或 EVENT_STAFF | 与会务权限一致 |
+| EnterpriseHotelController | 酒店 + 房型 CRUD |
+| PortalHotelController | 参会端房型列表、预订 |
+| HotelService | 配额同步、订房创建 pay_order |
+| `hotel_info` / `hotel_room_type` / `hotel_quota` | 按 `tenant_id` 隔离 |

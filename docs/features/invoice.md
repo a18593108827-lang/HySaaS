@@ -10,7 +10,8 @@
 密码任意 ≥6 位（DEV）。
 
 > 契约源码：`frontend/src/api/portal.ts`、`frontend/src/api/enterprise.ts`、`frontend/src/types/index.ts`  
-> 页面源码：`frontend/src/views/portal/OrdersView.vue`、`frontend/src/views/enterprise/FinanceInvoicesView.vue`
+> 页面源码：`frontend/src/views/portal/OrdersView.vue`、`frontend/src/views/enterprise/FinanceInvoicesView.vue`  
+> 支付流程：[payment.md](./payment.md)
 
 ## 业务流程
 
@@ -60,7 +61,13 @@
 
 | Method | Path | 说明 |
 |--------|------|------|
-| GET | `/enterprise/finance/invoices` | Query: `page?` |
+| GET | `/enterprise/finance/invoices` | 本租户发票列表 |
+
+### 回调（无需登录）
+
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/invoice/callback` | 票点云开票回调，body: `{ invoiceId, fileUrl?, status? }` |
 
 ### PayOrder
 
@@ -89,11 +96,14 @@
 
 ---
 
-## 后端实现建议
+## 后端实现
 
 | 后端 | 说明 |
 |------|------|
 | PortalInvoiceController | `POST /portal/invoices/apply` |
-| 校验 | 订单须 `PAID` 且归属当前用户，不可重复申请 |
-| 票点云 | 异步开票，回调更新 `inv_invoice` |
-| 邮件 | `INVOICE_READY` 模板发下载链接 |
+| InvoiceCallbackController | `POST /invoice/callback` |
+| EnterpriseFinanceController | `GET /enterprise/finance/invoices` |
+| InvoiceService | 校验 PAID + 不可重复申请 |
+| InvoiceAsyncService | DEV mock 异步开票（1.5s 后回调） |
+| EmailService | 开票完成发 `INVOICE_READY` 邮件 |
+| `inv_invoice` | 抬头、税号、金额、status、file_url |

@@ -59,9 +59,10 @@
 
 ---
 
-## 后端实现建议
+## 后端实现
 
 | 后端 | 说明 |
 |------|------|
+| PaperService | 分配专家、评审、终审 |
 | assign | `expertId` 须为本租户 `EXPERT` 成员 |
 | 状态机 | SUBMITTED → UNDER_REVIEW → REVIEW_DONE → ACCEPTED/REJECTED/REVISION |

@@ -283,14 +283,12 @@ PENDING → REJECTED   （平台拒绝）
 
 ---
 
-## 后端实现建议
+## 后端实现
 
 | 后端 | 前端入口 |
 |------|----------|
 | AuthController | LoginView、路由守卫 |
-| PublicTenantController apply | TenantRegisterView |
-| AdminTenantController CRUD/audit | TenantsView、TenantDetailView |
-| AdminUserController CRUD | UsersView、UserDetailView |
-| AdminConfigController | ConfigView |
-| `sys_tenant` | Tenant / TenantApplyPayload VO |
-| `sys_user` | AdminUser / AdminUserPayload VO |
+| PublicTenantController | TenantRegisterView |
+| AdminTenantController | TenantsView、TenantDetailView |
+| AdminUserController | UsersView、UserDetailView |
+| AdminConfigController | ConfigView（含 SMTP/支付宝/票点云） |

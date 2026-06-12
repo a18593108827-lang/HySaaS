@@ -107,10 +107,9 @@
 
 ---
 
-## 后端实现建议
+## 后端实现
 
-| 后端 | 前端入口 |
-|------|----------|
-| EnterpriseMemberController | MembersView、MemberDetailView |
+| 后端 | 说明 |
+|------|------|
+| EnterpriseMemberController | CRUD |
 | `sys_user` + `sys_user_role` | 自动绑定当前 tenant_id |
-| `@SaCheckRole('ADMIN')` | 仅管理员可管理成员 |

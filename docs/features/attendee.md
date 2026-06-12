@@ -99,10 +99,9 @@
 
 ---
 
-## 后端实现建议
+## 后端实现
 
 | 后端 | 说明 |
 |------|------|
-| EnterpriseAttendeeController | 同 EnterpriseMemberController 模式 |
+| EnterpriseAttendeeController | CRUD |
 | `sys_user` | `user_type=ATTENDEE`，自动绑定当前 `tenant_id` |
-| `@SaCheckRole('ADMIN')` 或 EVENT_STAFF | 与会务权限一致 |
