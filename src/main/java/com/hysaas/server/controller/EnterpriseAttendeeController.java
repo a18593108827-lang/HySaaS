@@ -44,7 +44,7 @@ public class EnterpriseAttendeeController {
     }
 
     @PutMapping("/{id}")
-    public R<EnterpriseAttendeeVO> update(@PathVariable Long id, @RequestBody EnterpriseAttendeePayload payload) {
+    public R<EnterpriseAttendeeVO> update(@PathVariable Long id, @Valid @RequestBody EnterpriseAttendeePayload payload) {
         return R.ok(enterpriseAttendeeService.update(id, payload));
     }
 

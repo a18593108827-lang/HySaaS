@@ -33,6 +33,7 @@ public class EnterpriseMemberService {
     private final EnterpriseContext enterpriseContext;
     private final EnterpriseRoleService enterpriseRoleService;
     private final PasswordEncoder passwordEncoder;
+    private final UserContactService userContactService;
 
     public PageResult<EnterpriseMemberVO> page(String role, Integer page, Integer size) {
         Long tenantId = enterpriseContext.requireTenantId();
@@ -70,18 +71,13 @@ public class EnterpriseMemberService {
         if (!StringUtils.hasText(payload.getPassword())) {
             throw new BizException("密码不能为空");
         }
-        long exists = sysUserMapper.selectCount(new LambdaQueryWrapper<SysUser>()
-                .eq(SysUser::getUsername, payload.getUsername()));
-        if (exists > 0) {
-            throw new BizException("账号已存在");
-        }
         String status = StringUtils.hasText(payload.getStatus()) ? payload.getStatus() : "ENABLED";
         if (!USER_STATUSES.contains(status)) {
             throw new BizException("无效的状态");
         }
         SysUser user = new SysUser();
         user.setTenantId(tenantId);
-        user.setUsername(payload.getUsername());
+        userContactService.bindContact(user, payload.getEmail(), payload.getPhone(), null);
         user.setNickname(payload.getNickname());
         user.setUserType("ENTERPRISE");
         user.setStatus(status);
@@ -97,6 +93,7 @@ public class EnterpriseMemberService {
     public EnterpriseMemberVO update(Long id, EnterpriseMemberPayload payload) {
         Long tenantId = enterpriseContext.requireTenantId();
         SysUser user = requireMember(id);
+        userContactService.bindContact(user, payload.getEmail(), payload.getPhone(), user.getId());
         if (StringUtils.hasText(payload.getNickname())) {
             user.setNickname(payload.getNickname());
         }
@@ -147,6 +144,9 @@ public class EnterpriseMemberService {
     private EnterpriseMemberVO toVO(SysUser user, List<String> roles) {
         EnterpriseMemberVO vo = new EnterpriseMemberVO();
         BeanUtils.copyProperties(user, vo);
+        if (!StringUtils.hasText(vo.getEmail())) {
+            vo.setEmail(user.getUsername());
+        }
         vo.setRoles(roles);
         return vo;
     }

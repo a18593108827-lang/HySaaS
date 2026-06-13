@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowDown } from '@element-plus/icons-vue'
 import { createEvent, deleteEvent, getEvents, publishEvent, updateEvent } from '@/api/enterprise'
 import { useEventStore } from '@/stores/event'
 import CheckinQrcodeDialog from '@/components/CheckinQrcodeDialog.vue'
@@ -37,6 +38,7 @@ const qrcodeVisible = ref(false)
 const qrcodeEvent = ref<EventItem | null>(null)
 const inviteVisible = ref(false)
 const inviteEvent = ref<EventItem | null>(null)
+const endTimeError = ref('')
 
 const statusMap: Record<string, string> = {
   DRAFT: '草稿',
@@ -85,6 +87,7 @@ function openInvite(row: EventItem) {
 function openCreate() {
   editingId.value = null
   form.value = defaultForm()
+  endTimeError.value = ''
   dialogVisible.value = true
 }
 
@@ -99,31 +102,38 @@ function openEdit(row: EventItem) {
     paperEnabled: row.paperEnabled,
     hotelEnabled: row.hotelEnabled,
   }
+  endTimeError.value = ''
   dialogVisible.value = true
+}
+
+function validateEventDates() {
+  endTimeError.value = ''
+  if (form.value.startTime && form.value.endTime && form.value.endTime < form.value.startTime) {
+    endTimeError.value = '结束时间不能早于开始时间'
+    return false
+  }
+  return true
 }
 
 async function handleSubmit() {
   if (!form.value.title) return ElMessage.warning('请填写活动名称')
+  if (!validateEventDates()) return
   if (editingId.value) {
     try {
       await updateEvent(editingId.value, form.value)
       ElMessage.success('已保存')
+      const row = list.value.find((e) => e.id === editingId.value)
+      if (row) Object.assign(row, form.value)
     } catch {
-      ElMessage.success('演示：已保存')
+      return
     }
-    const row = list.value.find((e) => e.id === editingId.value)
-    if (row) Object.assign(row, form.value)
   } else {
     try {
       await createEvent(form.value)
       ElMessage.success('活动已创建')
+      await load()
     } catch {
-      list.value.unshift({
-        id: Date.now(),
-        ...form.value,
-        status: 'DRAFT',
-      } as EventItem)
-      ElMessage.success('演示：活动已创建')
+      return
     }
   }
   dialogVisible.value = false
@@ -136,12 +146,12 @@ async function handleDelete(row: EventItem) {
   try {
     await deleteEvent(row.id)
     ElMessage.success('已删除')
+    list.value = list.value.filter((e) => e.id !== row.id)
+    if (String(eventStore.activeEventId) === String(row.id)) {
+      eventStore.setActiveEventId(list.value[0]?.id ?? null)
+    }
   } catch {
-    ElMessage.success('演示：已删除')
-  }
-  list.value = list.value.filter((e) => e.id !== row.id)
-  if (eventStore.activeEventId === row.id) {
-    eventStore.setActiveEventId(list.value[0]?.id ?? null)
+    return
   }
 }
 
@@ -152,9 +162,16 @@ async function handlePublish(row: EventItem) {
     row.status = 'PUBLISHED'
     ElMessage.success('已发布')
   } catch {
-    row.status = 'PUBLISHED'
-    ElMessage.success('演示：已发布')
+    return
   }
+}
+
+function handleMoreAction(command: string, row: EventItem) {
+  if (command === 'qrcode') openQrcode(row)
+  else if (command === 'invite') openInvite(row)
+  else if (command === 'publish') handlePublish(row)
+  else if (command === 'edit') openEdit(row)
+  else if (command === 'delete') handleDelete(row)
 }
 
 onMounted(load)
@@ -178,29 +195,36 @@ onMounted(load)
       <el-table-column prop="status" label="状态" width="90">
         <template #default="{ row }">{{ statusMap[row.status] }}</template>
       </el-table-column>
-      <el-table-column label="功能" width="150">
+      <el-table-column label="功能" width="130">
         <template #default="{ row }">
-          <el-tag v-if="row.registrationEnabled" size="small" style="margin-right: 4px">报名</el-tag>
-          <el-tag v-if="row.paperEnabled" size="small" type="success" style="margin-right: 4px">论文</el-tag>
-          <el-tag v-if="row.hotelEnabled" size="small" type="warning">酒店</el-tag>
+          <div class="feature-tags">
+            <el-tag v-if="row.registrationEnabled" size="small">报名</el-tag>
+            <el-tag v-if="row.paperEnabled" size="small" type="success">论文</el-tag>
+            <el-tag v-if="row.hotelEnabled" size="small" type="warning">酒店</el-tag>
+          </div>
         </template>
       </el-table-column>
-      <el-table-column label="操作" min-width="460" align="center" fixed="right">
+      <el-table-column label="操作" width="200" align="center" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="goRegistrations(row)">报名审核</el-button>
           <el-button link type="primary" @click="goCheckin(row)">签到管理</el-button>
-          <el-button link type="primary" @click="openQrcode(row)">获取二维码</el-button>
-          <el-button link type="primary" @click="openInvite(row)">邀请参会</el-button>
-          <el-button
-            v-if="row.status === 'DRAFT'"
-            link
-            type="primary"
-            @click="handlePublish(row)"
-          >
-            发布
-          </el-button>
-          <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+          <el-dropdown trigger="click" @command="(cmd: string) => handleMoreAction(cmd, row)">
+            <el-button link type="primary">
+              更多
+              <el-icon class="more-icon"><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="qrcode">获取二维码</el-dropdown-item>
+                <el-dropdown-item command="invite">邀请参会</el-dropdown-item>
+                <el-dropdown-item v-if="row.status === 'DRAFT'" command="publish">发布</el-dropdown-item>
+                <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                <el-dropdown-item command="delete" divided>
+                  <span class="danger-text">删除</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </template>
       </el-table-column>
     </el-table>
@@ -216,7 +240,7 @@ onMounted(load)
         <el-form-item label="开始">
           <el-date-picker v-model="form.startTime" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="结束">
+        <el-form-item label="结束" :error="endTimeError">
           <el-date-picker v-model="form.endTime" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
         <el-form-item label="开放功能">
@@ -254,5 +278,20 @@ onMounted(load)
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.feature-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.more-icon {
+  margin-left: 2px;
+  font-size: 12px;
+}
+
+.danger-text {
+  color: var(--el-color-danger);
 }
 </style>

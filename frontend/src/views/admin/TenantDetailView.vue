@@ -7,7 +7,7 @@ import type { Tenant } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
-const tenantId = computed(() => Number(route.params.id))
+const tenantId = computed(() => String(route.params.id))
 const loading = ref(false)
 const tenant = ref<Tenant | null>(null)
 const dialogVisible = ref(false)
@@ -26,9 +26,9 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'warning
   REJECTED: { label: '已拒绝', type: 'danger' },
 }
 
-const demoMap: Record<number, Tenant> = {
-  1: { id: 1, name: '华东医学会', contactName: '张敏', contactPhone: '13800138001', contactEmail: 'zhang@example.com', address: '上海市黄浦区', remark: '医学类大型会议主办方', status: 'PENDING', createdAt: '2026-06-01' },
-  2: { id: 2, name: '深圳创新峰会', contactName: '李强', contactPhone: '13900139002', contactEmail: 'li@example.com', status: 'APPROVED', createdAt: '2026-05-28', updatedAt: '2026-05-29' },
+const demoMap: Record<string, Tenant> = {
+  '1': { id: 1, name: '华东医学会', contactName: '张敏', contactPhone: '13800138001', contactEmail: 'zhang@example.com', address: '上海市黄浦区', remark: '医学类大型会议主办方', status: 'PENDING', createdAt: '2026-06-01' },
+  '2': { id: 2, name: '深圳创新峰会', contactName: '李强', contactPhone: '13900139002', contactEmail: 'li@example.com', status: 'APPROVED', createdAt: '2026-05-28', updatedAt: '2026-05-29' },
 }
 
 async function load() {
@@ -55,10 +55,10 @@ async function handleAudit(status: 'APPROVED' | 'REJECTED') {
   await ElMessageBox.confirm(`确认${action}租户「${tenant.value.name}」？`, '审核确认')
   try {
     await auditTenant(tenant.value.id, status)
+    tenant.value.status = status
     ElMessage.success(`已${action}`)
   } catch {
-    tenant.value.status = status
-    ElMessage.success(`演示：已${action}`)
+    return
   }
 }
 
@@ -68,10 +68,10 @@ async function handleDelete() {
   try {
     await deleteTenant(tenant.value.id)
     ElMessage.success('已删除')
+    router.push('/admin/tenants')
   } catch {
-    ElMessage.success('演示：已删除')
+    return
   }
-  router.push('/admin/tenants')
 }
 
 function openEdit() {
@@ -95,11 +95,11 @@ async function handleSubmit() {
   try {
     await updateTenant(tenant.value.id, form.value)
     ElMessage.success('已保存')
+    Object.assign(tenant.value, form.value)
+    dialogVisible.value = false
   } catch {
-    ElMessage.success('演示：已保存')
+    return
   }
-  Object.assign(tenant.value, form.value)
-  dialogVisible.value = false
 }
 
 onMounted(load)

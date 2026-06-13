@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createUser, deleteUser, getTenants, getUsers, updateUser } from '@/api/admin'
+import { validateEmail, validatePassword, validatePhone } from '@/utils/account'
 import type { AdminUser, UserType } from '@/types'
 
 const router = useRouter()
@@ -11,9 +12,10 @@ const list = ref<AdminUser[]>([])
 const tenantOptions = ref<{ id: number; name: string }[]>([])
 const userTypeFilter = ref('')
 const dialogVisible = ref(false)
-const editingId = ref<number | null>(null)
+const editingId = ref<number | string | null>(null)
 const form = ref({
-  username: '',
+  email: '',
+  phone: '',
   nickname: '',
   userType: 'ATTENDEE' as UserType,
   tenantId: undefined as number | undefined,
@@ -33,11 +35,14 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'danger'
 }
 
 const needTenant = computed(() => form.value.userType === 'ENTERPRISE')
+const emailError = ref('')
+const phoneError = ref('')
+const passwordErrorMsg = ref('')
 
 const demoList: AdminUser[] = [
-  { id: 1, username: 'admin@test.com', nickname: '平台管理员', userType: 'PLATFORM', status: 'ENABLED', createdAt: '2026-01-01' },
-  { id: 2, username: 'ent@test.com', nickname: '企业管理员', userType: 'ENTERPRISE', tenantId: 2, tenantName: '深圳创新峰会', status: 'ENABLED', createdAt: '2026-05-29' },
-  { id: 3, username: 'user@test.com', nickname: '参会用户', userType: 'ATTENDEE', status: 'ENABLED', createdAt: '2026-06-01' },
+  { id: 1, username: 'admin@test.com', email: 'admin@test.com', phone: '13800000001', nickname: '平台管理员', userType: 'PLATFORM', status: 'ENABLED', createdAt: '2026-01-01' },
+  { id: 2, username: 'ent@test.com', email: 'ent@test.com', phone: '13800000002', nickname: '企业管理员', userType: 'ENTERPRISE', tenantId: 2, tenantName: '深圳创新峰会', status: 'ENABLED', createdAt: '2026-05-29' },
+  { id: 3, username: 'user@test.com', email: 'user@test.com', phone: '13800000003', nickname: '参会用户', userType: 'ATTENDEE', status: 'ENABLED', createdAt: '2026-06-01' },
 ]
 
 async function loadTenants() {
@@ -63,35 +68,58 @@ async function load() {
   }
 }
 
+function clearFieldErrors() {
+  emailError.value = ''
+  phoneError.value = ''
+  passwordErrorMsg.value = ''
+}
+
 function openCreate() {
   editingId.value = null
-  form.value = { username: '', nickname: '', userType: 'ATTENDEE', tenantId: undefined, password: '', status: 'ENABLED' }
+  form.value = { email: '', phone: '', nickname: '', userType: 'ATTENDEE', tenantId: undefined, password: '', status: 'ENABLED' }
+  clearFieldErrors()
   dialogVisible.value = true
 }
 
 function openEdit(row: AdminUser) {
   editingId.value = row.id
   form.value = {
-    username: row.username,
+    email: row.email || row.username,
+    phone: row.phone || '',
     nickname: row.nickname,
     userType: row.userType,
     tenantId: row.tenantId,
     password: '',
     status: row.status,
   }
+  clearFieldErrors()
   dialogVisible.value = true
 }
 
 async function handleSubmit() {
-  if (!form.value.username || !form.value.nickname) return ElMessage.warning('请填写账号和昵称')
-  if (!editingId.value && (!form.value.password || form.value.password.length < 6)) {
-    return ElMessage.warning('密码至少 6 位')
+  clearFieldErrors()
+  if (!form.value.nickname) return ElMessage.warning('请填写昵称')
+  emailError.value = validateEmail(form.value.email)
+  phoneError.value = validatePhone(form.value.phone)
+  if (emailError.value || phoneError.value) return
+  if (!editingId.value) {
+    passwordErrorMsg.value = validatePassword(form.value.password, true)
+    if (passwordErrorMsg.value) return
+    const email = form.value.email.trim().toLowerCase()
+    if (list.value.some((u) => (u.email || u.username) === email)) {
+      emailError.value = '邮箱已被使用'
+      return
+    }
+  } else if (form.value.password) {
+    passwordErrorMsg.value = validatePassword(form.value.password, false)
+    if (passwordErrorMsg.value) return
   }
   if (form.value.userType === 'ENTERPRISE' && !form.value.tenantId) {
     return ElMessage.warning('企业用户请选择所属租户')
   }
   const payload = {
-    username: form.value.username,
+    email: form.value.email.trim().toLowerCase(),
+    phone: form.value.phone.trim(),
     nickname: form.value.nickname,
     userType: form.value.userType,
     tenantId: form.value.userType === 'ENTERPRISE' ? form.value.tenantId : undefined,
@@ -102,31 +130,21 @@ async function handleSubmit() {
     try {
       await updateUser(editingId.value, payload)
       ElMessage.success('已保存')
+      await load()
     } catch {
-      ElMessage.success('演示：已保存')
+      return
     }
-    const row = list.value.find((u) => u.id === editingId.value)
-    if (row) {
-      Object.assign(row, payload)
-      row.tenantName = tenantOptions.value.find((t) => t.id === row.tenantId)?.name
-    }
+    dialogVisible.value = false
   } else {
     try {
       await createUser(payload)
       ElMessage.success('用户已创建')
-      load()
+      await load()
+      dialogVisible.value = false
     } catch {
-      list.value.unshift({
-        id: Date.now(),
-        ...payload,
-        status: payload.status ?? 'ENABLED',
-        tenantName: tenantOptions.value.find((t) => t.id === payload.tenantId)?.name,
-        createdAt: new Date().toISOString().slice(0, 10),
-      } as AdminUser)
-      ElMessage.success('演示：用户已创建')
+      return
     }
   }
-  dialogVisible.value = false
 }
 
 async function handleDelete(row: AdminUser) {
@@ -134,10 +152,10 @@ async function handleDelete(row: AdminUser) {
   try {
     await deleteUser(row.id)
     ElMessage.success('已删除')
+    list.value = list.value.filter((u) => u.id !== row.id)
   } catch {
-    ElMessage.success('演示：已删除')
+    return
   }
-  list.value = list.value.filter((u) => u.id !== row.id)
 }
 
 onMounted(() => {
@@ -162,7 +180,10 @@ onMounted(() => {
       <el-button @click="load">刷新</el-button>
     </div>
     <el-table v-loading="loading" :data="list" border stripe>
-      <el-table-column prop="username" label="账号" min-width="140" show-overflow-tooltip />
+      <el-table-column prop="email" label="邮箱" min-width="150" show-overflow-tooltip>
+        <template #default="{ row }">{{ row.email || row.username }}</template>
+      </el-table-column>
+      <el-table-column prop="phone" label="手机" width="130" />
       <el-table-column prop="nickname" label="昵称" width="110" />
       <el-table-column prop="userType" label="类型" width="80">
         <template #default="{ row }">{{ userTypeMap[row.userType as UserType] }}</template>
@@ -187,8 +208,11 @@ onMounted(() => {
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑用户' : '新建用户'" width="480px">
       <el-form label-width="80px">
-        <el-form-item label="账号" required>
-          <el-input v-model="form.username" :disabled="!!editingId" placeholder="邮箱或手机号" />
+        <el-form-item label="邮箱" required :error="emailError">
+          <el-input v-model="form.email" placeholder="登录账号，同时用于联系" />
+        </el-form-item>
+        <el-form-item label="手机" required :error="phoneError">
+          <el-input v-model="form.phone" placeholder="11 位手机号，可用于登录" />
         </el-form-item>
         <el-form-item label="昵称" required>
           <el-input v-model="form.nickname" />
@@ -205,7 +229,7 @@ onMounted(() => {
             <el-option v-for="t in tenantOptions" :key="t.id" :label="t.name" :value="t.id" />
           </el-select>
         </el-form-item>
-        <el-form-item :label="editingId ? '新密码' : '密码'" :required="!editingId">
+        <el-form-item :label="editingId ? '新密码' : '密码'" :required="!editingId" :error="passwordErrorMsg">
           <el-input v-model="form.password" type="password" show-password :placeholder="editingId ? '留空则不修改' : '至少 6 位'" />
         </el-form-item>
         <el-form-item label="状态">

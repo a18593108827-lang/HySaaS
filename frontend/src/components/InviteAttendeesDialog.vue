@@ -27,29 +27,33 @@ const linkLoading = ref(false)
 const linkData = ref<InviteLinkData | null>(null)
 
 const demoAttendees: EnterpriseAttendee[] = [
-  { id: 101, username: 'user@test.com', nickname: '参会用户', status: 'ENABLED', createdAt: '2026-06-01' },
-  { id: 102, username: 'wang@example.com', nickname: '王明', status: 'ENABLED', createdAt: '2026-06-03' },
-  { id: 103, username: 'chen@example.com', nickname: '陈丽', status: 'ENABLED', createdAt: '2026-06-02' },
-  { id: 104, username: 'li@example.com', nickname: '李强', status: 'DISABLED', createdAt: '2026-06-04' },
+  { id: 101, username: 'user@test.com', email: 'user@test.com', phone: '13800000003', nickname: '参会用户', status: 'ENABLED', createdAt: '2026-06-01' },
+  { id: 102, username: 'wang@example.com', email: 'wang@example.com', phone: '13800001111', nickname: '王明', status: 'ENABLED', createdAt: '2026-06-03' },
+  { id: 103, username: 'chen@example.com', email: 'chen@example.com', phone: '13900002222', nickname: '陈丽', status: 'ENABLED', createdAt: '2026-06-02' },
+  { id: 104, username: 'li@example.com', email: 'li@example.com', phone: '13900003333', nickname: '李强', status: 'DISABLED', createdAt: '2026-06-04' },
 ]
 
 function filterDemo(nickname: string) {
   const q = nickname.trim().toLowerCase()
   if (!q) return [...demoAttendees]
-  return demoAttendees.filter((a) => a.nickname.toLowerCase().includes(q) || a.username.toLowerCase().includes(q))
+  return demoAttendees.filter((a) => a.nickname.toLowerCase().includes(q) || a.username.toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q) || (a.phone || '').includes(q))
 }
 
-async function searchAttendees() {
+async function loadAttendees() {
   searchLoading.value = true
-  selected.value = []
   try {
-    const res = await getAttendees({ nickname: keyword.value.trim() || undefined, size: 50 })
+    const res = await getAttendees({ nickname: keyword.value.trim() || undefined, size: 100 })
     attendees.value = res.records
   } catch {
     attendees.value = filterDemo(keyword.value)
   } finally {
     searchLoading.value = false
   }
+}
+
+function onSearch() {
+  selected.value = []
+  loadAttendees()
 }
 
 async function loadInviteLink() {
@@ -85,7 +89,7 @@ function onOpen() {
   activeTab.value = 'users'
   resetUsersTab()
   linkData.value = null
-  searchAttendees()
+  loadAttendees()
 }
 
 watch(
@@ -93,6 +97,7 @@ watch(
   (open) => {
     if (open) onOpen()
   },
+  { immediate: true },
 )
 
 watch(activeTab, (tab) => {
@@ -108,8 +113,7 @@ async function submitInvite() {
     ElMessage.success(`已邀请 ${res.invited} 人${res.skipped ? `，${res.skipped} 人已在名单中` : ''}`)
     emit('update:modelValue', false)
   } catch {
-    ElMessage.success(`演示：已邀请 ${userIds.length} 人`)
-    emit('update:modelValue', false)
+    return
   } finally {
     inviting.value = false
   }
@@ -134,12 +138,12 @@ async function onCopyLink() {
         <div class="search-row">
           <el-input
             v-model="keyword"
-            placeholder="按昵称或账号模糊搜索"
+            placeholder="筛选昵称或账号"
             clearable
-            @keyup.enter="searchAttendees"
-            @clear="searchAttendees"
+            @keyup.enter="onSearch"
+            @clear="onSearch"
           />
-          <el-button type="primary" :loading="searchLoading" @click="searchAttendees">搜索</el-button>
+          <el-button type="primary" :loading="searchLoading" @click="onSearch">筛选</el-button>
         </div>
         <el-table
           v-loading="searchLoading"
@@ -151,7 +155,10 @@ async function onCopyLink() {
         >
           <el-table-column type="selection" width="44" :selectable="(row: EnterpriseAttendee) => row.status === 'ENABLED'" />
           <el-table-column prop="nickname" label="昵称" width="100" />
-          <el-table-column prop="username" label="账号" min-width="140" show-overflow-tooltip />
+          <el-table-column label="邮箱" min-width="140" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.email || row.username }}</template>
+          </el-table-column>
+          <el-table-column prop="phone" label="手机" width="120" />
           <el-table-column prop="status" label="状态" width="72">
             <template #default="{ row }">
               <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">

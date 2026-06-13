@@ -13,7 +13,7 @@ interface RoomType {
 
 const route = useRoute()
 const router = useRouter()
-const eventId = Number(route.params.eventId)
+const eventId = String(route.params.eventId)
 const loading = ref(false)
 const submitting = ref(false)
 const rooms = ref<RoomType[]>([])
@@ -42,8 +42,7 @@ async function onBook() {
     ElMessage.success('预订成功，请完成支付')
     router.push('/portal/orders')
   } catch {
-    ElMessage.success('演示：预订成功')
-    router.push('/portal/orders')
+    return
   } finally {
     submitting.value = false
   }

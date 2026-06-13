@@ -3,15 +3,26 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { deleteMember, getMember, updateMember } from '@/api/enterprise'
+import { validateEmail, validatePassword, validatePhone } from '@/utils/account'
 import type { EnterpriseMember } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
-const memberId = computed(() => Number(route.params.id))
+const memberId = computed(() => String(route.params.id))
 const loading = ref(false)
 const member = ref<EnterpriseMember | null>(null)
 const dialogVisible = ref(false)
-const form = ref({ nickname: '', roles: [] as string[], password: '', status: 'ENABLED' as EnterpriseMember['status'] })
+const form = ref({
+  email: '',
+  phone: '',
+  nickname: '',
+  roles: [] as string[],
+  password: '',
+  status: 'ENABLED' as EnterpriseMember['status'],
+})
+const emailError = ref('')
+const phoneError = ref('')
+const passwordErrorMsg = ref('')
 
 const roleOptions = [
   { value: 'ADMIN', label: '管理员' },
@@ -27,10 +38,10 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'danger'
   DISABLED: { label: '禁用', type: 'danger' },
 }
 
-const demoMap: Record<number, EnterpriseMember> = {
-  1: { id: 1, username: 'ent@test.com', nickname: '企业管理员', roles: ['ADMIN'], status: 'ENABLED', createdAt: '2026-05-29' },
-  2: { id: 2, username: 'staff@test.com', nickname: '会务小李', roles: ['EVENT_STAFF'], status: 'ENABLED', createdAt: '2026-06-01' },
-  3: { id: 3, username: 'expert@test.com', nickname: '评审专家王', roles: ['EXPERT'], status: 'ENABLED', createdAt: '2026-06-02' },
+const demoMap: Record<string, EnterpriseMember> = {
+  '1': { id: 1, username: 'ent@test.com', email: 'ent@test.com', phone: '13800000002', nickname: '企业管理员', roles: ['ADMIN'], status: 'ENABLED', createdAt: '2026-05-29' },
+  '2': { id: 2, username: 'staff@test.com', email: 'staff@test.com', phone: '13800001112', nickname: '会务小李', roles: ['EVENT_STAFF'], status: 'ENABLED', createdAt: '2026-06-01' },
+  '3': { id: 3, username: 'expert@test.com', email: 'expert@test.com', phone: '13800001113', nickname: '评审专家王', roles: ['EXPERT'], status: 'ENABLED', createdAt: '2026-06-02' },
 }
 
 async function load() {
@@ -39,8 +50,10 @@ async function load() {
     member.value = await getMember(memberId.value)
   } catch {
     member.value = demoMap[memberId.value] ?? {
-      id: memberId.value,
+      id: memberId.value as unknown as number,
       username: `member${memberId.value}@test.com`,
+      email: `member${memberId.value}@test.com`,
+      phone: '',
       nickname: '演示成员',
       roles: ['EVENT_STAFF'],
       status: 'ENABLED',
@@ -54,32 +67,44 @@ async function load() {
 function openEdit() {
   if (!member.value) return
   form.value = {
+    email: member.value.email || member.value.username,
+    phone: member.value.phone || '',
     nickname: member.value.nickname,
     roles: [...member.value.roles],
     password: '',
     status: member.value.status,
   }
+  emailError.value = ''
+  phoneError.value = ''
+  passwordErrorMsg.value = ''
   dialogVisible.value = true
 }
 
 async function handleSubmit() {
   if (!member.value || !form.value.nickname) return ElMessage.warning('请填写昵称')
   if (!form.value.roles.length) return ElMessage.warning('请选择至少一个角色')
-  if (form.value.password && form.value.password.length < 6) return ElMessage.warning('密码至少 6 位')
+  emailError.value = validateEmail(form.value.email)
+  phoneError.value = validatePhone(form.value.phone)
+  if (emailError.value || phoneError.value) return
+  if (form.value.password) {
+    passwordErrorMsg.value = validatePassword(form.value.password, false)
+    if (passwordErrorMsg.value) return
+  }
   const payload = {
+    email: form.value.email.trim().toLowerCase(),
+    phone: form.value.phone.trim(),
     nickname: form.value.nickname,
     roles: form.value.roles,
     status: form.value.status,
     ...(form.value.password ? { password: form.value.password } : {}),
   }
   try {
-    await updateMember(member.value.id, payload)
+    member.value = await updateMember(member.value.id, payload)
     ElMessage.success('已保存')
+    dialogVisible.value = false
   } catch {
-    ElMessage.success('演示：已保存')
+    return
   }
-  Object.assign(member.value, payload)
-  dialogVisible.value = false
 }
 
 async function handleDelete() {
@@ -88,10 +113,10 @@ async function handleDelete() {
   try {
     await deleteMember(member.value.id)
     ElMessage.success('已删除')
+    router.push('/enterprise/members')
   } catch {
-    ElMessage.success('演示：已删除')
+    return
   }
-  router.push('/enterprise/members')
 }
 
 onMounted(load)
@@ -108,9 +133,10 @@ onMounted(load)
         <el-tag :type="statusMap[member.status]?.type">{{ statusMap[member.status]?.label }}</el-tag>
       </div>
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="账号">{{ member.username }}</el-descriptions-item>
+        <el-descriptions-item label="邮箱">{{ member.email || member.username }}</el-descriptions-item>
+        <el-descriptions-item label="手机">{{ member.phone || '—' }}</el-descriptions-item>
         <el-descriptions-item label="昵称">{{ member.nickname }}</el-descriptions-item>
-        <el-descriptions-item label="角色" :span="2">
+        <el-descriptions-item label="角色">
           <el-tag v-for="role in member.roles" :key="role" size="small" style="margin-right: 4px">
             {{ roleMap[role] || role }}
           </el-tag>
@@ -123,8 +149,14 @@ onMounted(load)
       </div>
     </template>
 
-    <el-dialog v-model="dialogVisible" title="编辑成员" width="440px">
+    <el-dialog v-model="dialogVisible" title="编辑成员" width="480px">
       <el-form label-width="80px">
+        <el-form-item label="邮箱" required :error="emailError">
+          <el-input v-model="form.email" placeholder="登录账号" />
+        </el-form-item>
+        <el-form-item label="手机" required :error="phoneError">
+          <el-input v-model="form.phone" placeholder="11 位手机号" />
+        </el-form-item>
         <el-form-item label="昵称" required>
           <el-input v-model="form.nickname" />
         </el-form-item>
@@ -133,7 +165,7 @@ onMounted(load)
             <el-option v-for="r in roleOptions" :key="r.value" :label="r.label" :value="r.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="新密码">
+        <el-form-item label="新密码" :error="passwordErrorMsg">
           <el-input v-model="form.password" type="password" show-password placeholder="留空则不修改" />
         </el-form-item>
         <el-form-item label="状态">

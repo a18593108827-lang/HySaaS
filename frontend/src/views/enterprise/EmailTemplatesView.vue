@@ -55,11 +55,11 @@ async function save() {
     const idx = list.value.findIndex((t) => t.id === editing.value!.id)
     if (idx >= 0) list.value[idx] = { ...editing.value }
     ElMessage.success('模板已保存')
+    dialogVisible.value = false
+    editing.value = null
   } catch {
-    ElMessage.success('演示：模板已保存')
+    return
   }
-  dialogVisible.value = false
-  editing.value = null
 }
 
 onMounted(load)

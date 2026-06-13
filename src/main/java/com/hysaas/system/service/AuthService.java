@@ -28,11 +28,10 @@ public class AuthService {
     private final SysEventPermissionMapper sysEventPermissionMapper;
     private final PasswordEncoder passwordEncoder;
     private final StpInterface stpInterface;
+    private final UserContactService userContactService;
 
     public LoginResultVO login(LoginRequest request) {
-        SysUser user = sysUserMapper.selectOne(new LambdaQueryWrapper<SysUser>()
-                .eq(SysUser::getUsername, request.getUsername())
-                .last("LIMIT 1"));
+        SysUser user = userContactService.findByLoginAccount(request.getUsername());
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BizException(401, "账号或密码不正确");
         }
@@ -63,6 +62,8 @@ public class AuthService {
         UserInfoVO vo = new UserInfoVO();
         vo.setId(user.getId());
         vo.setUsername(user.getUsername());
+        vo.setEmail(user.getEmail());
+        vo.setPhone(user.getPhone());
         vo.setNickname(user.getNickname());
         vo.setUserType(user.getUserType());
         vo.setTenantId(user.getTenantId());

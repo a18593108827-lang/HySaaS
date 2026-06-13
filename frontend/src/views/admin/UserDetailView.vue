@@ -3,15 +3,25 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { deleteUser, getUser, updateUser } from '@/api/admin'
+import { validateEmail, validatePassword, validatePhone } from '@/utils/account'
 import type { AdminUser, UserType } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
-const userId = computed(() => Number(route.params.id))
+const userId = computed(() => String(route.params.id))
 const loading = ref(false)
 const user = ref<AdminUser | null>(null)
 const dialogVisible = ref(false)
-const form = ref({ nickname: '', password: '', status: 'ENABLED' as AdminUser['status'] })
+const form = ref({
+  email: '',
+  phone: '',
+  nickname: '',
+  password: '',
+  status: 'ENABLED' as AdminUser['status'],
+})
+const emailError = ref('')
+const phoneError = ref('')
+const passwordErrorMsg = ref('')
 
 const userTypeMap: Record<UserType, string> = {
   PLATFORM: '平台',
@@ -24,10 +34,10 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'danger'
   DISABLED: { label: '禁用', type: 'danger' },
 }
 
-const demoMap: Record<number, AdminUser> = {
-  1: { id: 1, username: 'admin@test.com', nickname: '平台管理员', userType: 'PLATFORM', status: 'ENABLED', createdAt: '2026-01-01' },
-  2: { id: 2, username: 'ent@test.com', nickname: '企业管理员', userType: 'ENTERPRISE', tenantId: 2, tenantName: '深圳创新峰会', status: 'ENABLED', createdAt: '2026-05-29' },
-  3: { id: 3, username: 'user@test.com', nickname: '参会用户', userType: 'ATTENDEE', status: 'ENABLED', createdAt: '2026-06-01' },
+const demoMap: Record<string, AdminUser> = {
+  '1': { id: 1, username: 'admin@test.com', email: 'admin@test.com', phone: '13800000001', nickname: '平台管理员', userType: 'PLATFORM', status: 'ENABLED', createdAt: '2026-01-01' },
+  '2': { id: 2, username: 'ent@test.com', email: 'ent@test.com', phone: '13800000002', nickname: '企业管理员', userType: 'ENTERPRISE', tenantId: 2, tenantName: '深圳创新峰会', status: 'ENABLED', createdAt: '2026-05-29' },
+  '3': { id: 3, username: 'user@test.com', email: 'user@test.com', phone: '13800000003', nickname: '参会用户', userType: 'ATTENDEE', status: 'ENABLED', createdAt: '2026-06-01' },
 }
 
 async function load() {
@@ -36,8 +46,10 @@ async function load() {
     user.value = await getUser(userId.value)
   } catch {
     user.value = demoMap[userId.value] ?? {
-      id: userId.value,
+      id: userId.value as unknown as number,
       username: `user${userId.value}@test.com`,
+      email: `user${userId.value}@test.com`,
+      phone: '',
       nickname: '演示用户',
       userType: 'ATTENDEE',
       status: 'ENABLED',
@@ -50,34 +62,54 @@ async function load() {
 
 function openEdit() {
   if (!user.value) return
-  form.value = { nickname: user.value.nickname, password: '', status: user.value.status }
+  form.value = {
+    email: user.value.email || user.value.username,
+    phone: user.value.phone || '',
+    nickname: user.value.nickname,
+    password: '',
+    status: user.value.status,
+  }
+  emailError.value = ''
+  phoneError.value = ''
+  passwordErrorMsg.value = ''
   dialogVisible.value = true
 }
 
 async function handleSubmit() {
   if (!user.value || !form.value.nickname) return ElMessage.warning('请填写昵称')
-  if (form.value.password && form.value.password.length < 6) return ElMessage.warning('密码至少 6 位')
-  const payload = { nickname: form.value.nickname, status: form.value.status, ...(form.value.password ? { password: form.value.password } : {}) }
-  try {
-    await updateUser(user.value.id, payload)
-    ElMessage.success('已保存')
-  } catch {
-    ElMessage.success('演示：已保存')
+  emailError.value = validateEmail(form.value.email)
+  phoneError.value = validatePhone(form.value.phone)
+  if (emailError.value || phoneError.value) return
+  if (form.value.password) {
+    passwordErrorMsg.value = validatePassword(form.value.password, false)
+    if (passwordErrorMsg.value) return
   }
-  Object.assign(user.value, payload)
-  dialogVisible.value = false
+  const payload = {
+    email: form.value.email.trim().toLowerCase(),
+    phone: form.value.phone.trim(),
+    nickname: form.value.nickname,
+    status: form.value.status,
+    ...(form.value.password ? { password: form.value.password } : {}),
+  }
+  try {
+    user.value = await updateUser(user.value.id, payload)
+    ElMessage.success('已保存')
+    dialogVisible.value = false
+  } catch {
+    return
+  }
 }
 
 async function handleDelete() {
   if (!user.value) return
-  await ElMessageBox.confirm(`删除用户「${user.value.username}」？`, '删除确认', { type: 'warning' })
+  await ElMessageBox.confirm(`删除用户「${user.value.nickname}」？`, '删除确认', { type: 'warning' })
   try {
     await deleteUser(user.value.id)
     ElMessage.success('已删除')
+    router.push('/admin/users')
   } catch {
-    ElMessage.success('演示：已删除')
+    return
   }
-  router.push('/admin/users')
 }
 
 onMounted(load)
@@ -95,7 +127,8 @@ onMounted(load)
         <el-tag :type="statusMap[user.status]?.type">{{ statusMap[user.status]?.label }}</el-tag>
       </div>
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="账号">{{ user.username }}</el-descriptions-item>
+        <el-descriptions-item label="邮箱">{{ user.email || user.username }}</el-descriptions-item>
+        <el-descriptions-item label="手机">{{ user.phone || '—' }}</el-descriptions-item>
         <el-descriptions-item label="昵称">{{ user.nickname }}</el-descriptions-item>
         <el-descriptions-item label="类型">{{ userTypeMap[user.userType] }}</el-descriptions-item>
         <el-descriptions-item label="所属租户">{{ user.tenantName || '—' }}</el-descriptions-item>
@@ -107,12 +140,18 @@ onMounted(load)
       </div>
     </template>
 
-    <el-dialog v-model="dialogVisible" title="编辑用户" width="440px">
+    <el-dialog v-model="dialogVisible" title="编辑用户" width="480px">
       <el-form label-width="80px">
+        <el-form-item label="邮箱" required :error="emailError">
+          <el-input v-model="form.email" placeholder="登录账号" />
+        </el-form-item>
+        <el-form-item label="手机" required :error="phoneError">
+          <el-input v-model="form.phone" placeholder="11 位手机号" />
+        </el-form-item>
         <el-form-item label="昵称" required>
           <el-input v-model="form.nickname" />
         </el-form-item>
-        <el-form-item label="新密码">
+        <el-form-item label="新密码" :error="passwordErrorMsg">
           <el-input v-model="form.password" type="password" show-password placeholder="留空则不修改" />
         </el-form-item>
         <el-form-item label="状态">

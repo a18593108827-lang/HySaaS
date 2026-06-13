@@ -10,7 +10,7 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-const eventId = Number(route.params.eventId)
+const eventId = String(route.params.eventId)
 const scanToken = computed(() => (route.query.token as string) || '')
 const fromScan = computed(() => !!scanToken.value)
 
@@ -29,12 +29,7 @@ async function doCheckin() {
     done.value = true
     ElMessage.success('签到成功')
   } catch {
-    if (import.meta.env.DEV) {
-      done.value = true
-      ElMessage.success('演示：签到成功')
-    } else {
-      error.value = '签到失败，请确认已报名并通过审核'
-    }
+    error.value = '签到失败，请确认已报名并通过审核'
   } finally {
     loading.value = false
   }
@@ -45,7 +40,7 @@ onMounted(async () => {
     event.value = await getPortalEvent(eventId, scanToken.value || undefined)
   } catch {
     event.value = {
-      id: eventId,
+      id: eventId as unknown as number,
       title: '2026 医学年会',
       location: '上海',
       startTime: '2026-09-15',

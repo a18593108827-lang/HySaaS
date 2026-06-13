@@ -142,6 +142,6 @@ public class CheckinService {
         if (time == null) {
             return "";
         }
-        return time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        return time.format(DateTimeFormatter.ISO_LOCAL_DATE);
     }
 }

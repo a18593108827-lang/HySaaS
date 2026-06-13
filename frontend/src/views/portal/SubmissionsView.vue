@@ -36,12 +36,12 @@ async function handleSaveDraft() {
   try {
     await saveDraft(form.value)
     ElMessage.success('草稿已保存')
+    dialogVisible.value = false
+    form.value = { title: '', abstract: '' }
+    await load()
   } catch {
-    list.value.push({ id: Date.now(), title: form.value.title, author: '我', status: 'DRAFT', version: 1, submittedAt: '' })
-    ElMessage.success('演示：草稿已保存')
+    return
   }
-  dialogVisible.value = false
-  form.value = { title: '', abstract: '' }
 }
 
 async function handleSubmit(row: PaperSubmission) {
@@ -50,8 +50,7 @@ async function handleSubmit(row: PaperSubmission) {
     row.status = 'SUBMITTED'
     ElMessage.success('稿件已提交')
   } catch {
-    row.status = 'SUBMITTED'
-    ElMessage.success('演示：稿件已提交')
+    return
   }
 }
 

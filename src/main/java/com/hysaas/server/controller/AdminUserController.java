@@ -46,7 +46,7 @@ public class AdminUserController {
     }
 
     @PutMapping("/{id}")
-    public R<AdminUserVO> update(@PathVariable Long id, @RequestBody AdminUserUpdateRequest request) {
+    public R<AdminUserVO> update(@PathVariable Long id, @Valid @RequestBody AdminUserUpdateRequest request) {
         return R.ok(adminUserService.update(id, request));
     }
 

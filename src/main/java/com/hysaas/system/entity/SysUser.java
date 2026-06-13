@@ -16,6 +16,8 @@ public class SysUser {
     private Long id;
     private Long tenantId;
     private String username;
+    private String email;
+    private String phone;
     private String password;
     private String nickname;
     private String userType;

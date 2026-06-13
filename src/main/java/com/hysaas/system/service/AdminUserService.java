@@ -35,6 +35,7 @@ public class AdminUserService {
     private final SysUserMapper sysUserMapper;
     private final SysTenantMapper sysTenantMapper;
     private final PasswordEncoder passwordEncoder;
+    private final UserContactService userContactService;
 
     public PageResult<AdminUserVO> page(String userType, Long tenantId, Integer page, Integer size) {
         int pageNum = page == null ? CommonConstants.DEFAULT_PAGE : page;
@@ -71,13 +72,8 @@ public class AdminUserService {
             throw new BizException("无效的用户状态");
         }
         validateTenantBinding(request.getUserType(), request.getTenantId());
-        long exists = sysUserMapper.selectCount(new LambdaQueryWrapper<SysUser>()
-                .eq(SysUser::getUsername, request.getUsername()));
-        if (exists > 0) {
-            throw new BizException("账号已存在");
-        }
         SysUser user = new SysUser();
-        user.setUsername(request.getUsername());
+        userContactService.bindContact(user, request.getEmail(), request.getPhone(), null);
         user.setNickname(request.getNickname());
         user.setUserType(request.getUserType());
         user.setTenantId(resolveTenantId(request.getUserType(), request.getTenantId()));
@@ -92,9 +88,8 @@ public class AdminUserService {
     @Transactional
     public AdminUserVO update(Long id, AdminUserUpdateRequest request) {
         SysUser user = requireUser(id);
-        if (StringUtils.hasText(request.getNickname())) {
-            user.setNickname(request.getNickname());
-        }
+        userContactService.bindContact(user, request.getEmail(), request.getPhone(), user.getId());
+        user.setNickname(request.getNickname());
         if (StringUtils.hasText(request.getStatus())) {
             if (!USER_STATUSES.contains(request.getStatus())) {
                 throw new BizException("无效的用户状态");
@@ -178,6 +173,9 @@ public class AdminUserService {
     private AdminUserVO toVO(SysUser user, String tenantName) {
         AdminUserVO vo = new AdminUserVO();
         BeanUtils.copyProperties(user, vo);
+        if (!StringUtils.hasText(vo.getEmail())) {
+            vo.setEmail(user.getUsername());
+        }
         vo.setTenantName(tenantName);
         return vo;
     }

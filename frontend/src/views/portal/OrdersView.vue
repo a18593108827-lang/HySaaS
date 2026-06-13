@@ -50,7 +50,7 @@ async function handlePay(row: PayOrder) {
     if (res.payUrl) window.open(res.payUrl, '_blank')
     ElMessage.success('已跳转支付')
   } catch {
-    ElMessage.success('演示：已跳转支付宝')
+    return
   }
 }
 
@@ -69,12 +69,13 @@ async function handleApplyInvoice() {
   try {
     await applyInvoice({ orderId: currentOrder.value.id, ...form.value })
     ElMessage.success('发票申请已提交')
+    currentOrder.value.invoiceStatus = 'APPLYING'
+    dialogVisible.value = false
   } catch {
-    ElMessage.success('演示：发票申请已提交')
+    return
+  } finally {
+    submitting.value = false
   }
-  currentOrder.value.invoiceStatus = 'APPLYING'
-  dialogVisible.value = false
-  submitting.value = false
 }
 
 onMounted(load)

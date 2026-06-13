@@ -69,11 +69,10 @@ async function handleAssign() {
     await assignReviewer(currentPaper.value.id, expertId.value)
     currentPaper.value.status = 'UNDER_REVIEW'
     ElMessage.success('已分配专家')
+    assignDialog.value = false
   } catch {
-    currentPaper.value.status = 'UNDER_REVIEW'
-    ElMessage.success('演示：已分配专家')
+    return
   }
-  assignDialog.value = false
 }
 
 async function handleFinalize(row: PaperSubmission, status: 'ACCEPTED' | 'REJECTED' | 'REVISION') {
@@ -84,8 +83,7 @@ async function handleFinalize(row: PaperSubmission, status: 'ACCEPTED' | 'REJECT
     row.status = status
     ElMessage.success(`已${labels[status]}`)
   } catch {
-    row.status = status
-    ElMessage.success(`演示：已${labels[status]}`)
+    return
   }
 }
 

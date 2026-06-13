@@ -32,6 +32,8 @@ const demoList: Tenant[] = [
   { id: 2, name: '深圳创新峰会', contactName: '李强', contactPhone: '13900139002', contactEmail: 'li@example.com', status: 'APPROVED', createdAt: '2026-05-28' },
 ]
 
+const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 async function load() {
   loading.value = true
   try {
@@ -68,31 +70,33 @@ async function handleSubmit() {
   if (!form.value.name || !form.value.contactName || !form.value.contactPhone) {
     return ElMessage.warning('请填写企业名称、联系人、联系电话')
   }
-  const payload = { ...form.value }
+  if (!form.value.contactEmail?.trim()) {
+    return ElMessage.warning('请填写联系邮箱')
+  }
+  if (!emailRe.test(form.value.contactEmail.trim())) {
+    return ElMessage.warning('联系邮箱格式不正确')
+  }
+  const payload = { ...form.value, contactEmail: form.value.contactEmail.trim() }
   if (editingId.value) {
     try {
       await updateTenant(editingId.value, payload)
       ElMessage.success('已保存')
+      const row = list.value.find((e) => e.id === editingId.value)
+      if (row) Object.assign(row, payload)
+      dialogVisible.value = false
     } catch {
-      ElMessage.success('演示：已保存')
+      return
     }
-    const row = list.value.find((e) => e.id === editingId.value)
-    if (row) Object.assign(row, payload)
   } else {
     try {
       await createTenant(payload)
       ElMessage.success('租户已创建')
-      load()
+      await load()
+      dialogVisible.value = false
     } catch {
-      list.value.unshift({
-        id: Date.now(),
-        ...payload,
-        createdAt: new Date().toISOString().slice(0, 10),
-      } as Tenant)
-      ElMessage.success('演示：租户已创建')
+      return
     }
   }
-  dialogVisible.value = false
 }
 
 async function handleDelete(row: Tenant) {
@@ -100,10 +104,10 @@ async function handleDelete(row: Tenant) {
   try {
     await deleteTenant(row.id)
     ElMessage.success('已删除')
+    list.value = list.value.filter((e) => e.id !== row.id)
   } catch {
-    ElMessage.success('演示：已删除')
+    return
   }
-  list.value = list.value.filter((e) => e.id !== row.id)
 }
 
 async function handleAudit(row: Tenant, status: 'APPROVED' | 'REJECTED') {
@@ -111,10 +115,11 @@ async function handleAudit(row: Tenant, status: 'APPROVED' | 'REJECTED') {
   await ElMessageBox.confirm(`确认${action}租户「${row.name}」？`, '审核确认')
   try {
     await auditTenant(row.id, status)
-    ElMessage.success(`已${action}`)
-  } catch {
     row.status = status
-    ElMessage.success(`演示：已${action}`)
+    ElMessage.success(`已${action}`)
+    await load()
+  } catch {
+    return
   }
 }
 
@@ -182,8 +187,8 @@ onMounted(load)
         <el-form-item label="联系电话" required>
           <el-input v-model="form.contactPhone" />
         </el-form-item>
-        <el-form-item label="联系邮箱">
-          <el-input v-model="form.contactEmail" />
+        <el-form-item label="联系邮箱" required>
+          <el-input v-model="form.contactEmail" placeholder="name@company.com" />
         </el-form-item>
         <el-form-item label="地址">
           <el-input v-model="form.address" />

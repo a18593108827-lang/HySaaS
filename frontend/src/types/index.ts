@@ -3,6 +3,8 @@ export type UserType = 'PLATFORM' | 'ENTERPRISE' | 'ATTENDEE'
 export interface UserInfo {
   id: number
   username: string
+  email?: string
+  phone?: string
   nickname: string
   userType: UserType
   tenantId?: number
@@ -18,6 +20,8 @@ export interface LoginResult {
 export interface AdminUser {
   id: number
   username: string
+  email?: string
+  phone?: string
   nickname: string
   userType: UserType
   tenantId?: number
@@ -27,7 +31,8 @@ export interface AdminUser {
 }
 
 export interface AdminUserPayload {
-  username: string
+  email: string
+  phone: string
   nickname: string
   userType: UserType
   tenantId?: number
@@ -38,6 +43,8 @@ export interface AdminUserPayload {
 export interface EnterpriseMember {
   id: number
   username: string
+  email?: string
+  phone?: string
   nickname: string
   roles: string[]
   status: 'ENABLED' | 'DISABLED'
@@ -45,7 +52,8 @@ export interface EnterpriseMember {
 }
 
 export interface EnterpriseMemberPayload {
-  username: string
+  email: string
+  phone: string
   nickname: string
   roles: string[]
   password?: string
@@ -55,13 +63,16 @@ export interface EnterpriseMemberPayload {
 export interface EnterpriseAttendee {
   id: number
   username: string
+  email?: string
+  phone?: string
   nickname: string
   status: 'ENABLED' | 'DISABLED'
   createdAt: string
 }
 
 export interface EnterpriseAttendeePayload {
-  username: string
+  email: string
+  phone: string
   nickname: string
   password?: string
   status?: 'ENABLED' | 'DISABLED'

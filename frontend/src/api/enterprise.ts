@@ -5,7 +5,7 @@ export function getEvents(params?: { page?: number; size?: number }) {
   return request.get<unknown, PageResult<EventItem>>('/enterprise/events', { params })
 }
 
-export function getEvent(id: number) {
+export function getEvent(id: number | string) {
   return request.get<unknown, EventItem>(`/enterprise/events/${id}`)
 }
 
@@ -13,31 +13,31 @@ export function createEvent(data: Partial<EventItem>) {
   return request.post('/enterprise/events', data)
 }
 
-export function updateEvent(id: number, data: Partial<EventItem>) {
+export function updateEvent(id: number | string, data: Partial<EventItem>) {
   return request.put(`/enterprise/events/${id}`, data)
 }
 
-export function publishEvent(id: number) {
+export function publishEvent(id: number | string) {
   return request.post(`/enterprise/events/${id}/publish`)
 }
 
-export function deleteEvent(id: number) {
+export function deleteEvent(id: number | string) {
   return request.delete(`/enterprise/events/${id}`)
 }
 
-export function generateQrcode(id: number) {
+export function generateQrcode(id: number | string) {
   return request.post<unknown, CheckinQrcodeResult>(`/enterprise/events/${id}/qrcode`)
 }
 
-export function getRegistrations(eventId: number, params?: { status?: string }) {
+export function getRegistrations(eventId: number | string, params?: { status?: string }) {
   return request.get<unknown, PageResult<Registration>>(`/enterprise/events/${eventId}/registrations`, { params })
 }
 
-export function auditRegistration(id: number, status: 'APPROVED' | 'REJECTED') {
+export function auditRegistration(id: number | string, status: 'APPROVED' | 'REJECTED') {
   return request.put(`/enterprise/registrations/${id}`, { status })
 }
 
-export function getCheckinList(eventId: number) {
+export function getCheckinList(eventId: number | string) {
   return request.get(`/enterprise/events/${eventId}/checkin`)
 }
 
@@ -125,7 +125,7 @@ export function getMembers(params?: { role?: string; page?: number; size?: numbe
   return request.get<unknown, PageResult<EnterpriseMember>>('/enterprise/members', { params })
 }
 
-export function getMember(id: number) {
+export function getMember(id: number | string) {
   return request.get<unknown, EnterpriseMember>(`/enterprise/members/${id}`)
 }
 
@@ -133,11 +133,11 @@ export function createMember(data: EnterpriseMemberPayload) {
   return request.post('/enterprise/members', data)
 }
 
-export function updateMember(id: number, data: Partial<EnterpriseMemberPayload>) {
-  return request.put(`/enterprise/members/${id}`, data)
+export function updateMember(id: number | string, data: EnterpriseMemberPayload) {
+  return request.put<unknown, EnterpriseMember>(`/enterprise/members/${id}`, data)
 }
 
-export function deleteMember(id: number) {
+export function deleteMember(id: number | string) {
   return request.delete(`/enterprise/members/${id}`)
 }
 
@@ -145,15 +145,15 @@ export function getAttendees(params?: { nickname?: string; page?: number; size?:
   return request.get<unknown, PageResult<EnterpriseAttendee>>('/enterprise/attendees', { params })
 }
 
-export function inviteAttendees(eventId: number, data: EventInvitePayload) {
+export function inviteAttendees(eventId: number | string, data: EventInvitePayload) {
   return request.post<unknown, EventInviteResult>(`/enterprise/events/${eventId}/invites`, data)
 }
 
-export function generateInviteLink(eventId: number) {
+export function generateInviteLink(eventId: number | string) {
   return request.post<unknown, EventInviteLinkResult>(`/enterprise/events/${eventId}/invite-link`)
 }
 
-export function getAttendee(id: number) {
+export function getAttendee(id: number | string) {
   return request.get<unknown, EnterpriseAttendee>(`/enterprise/attendees/${id}`)
 }
 
@@ -161,10 +161,10 @@ export function createAttendee(data: EnterpriseAttendeePayload) {
   return request.post('/enterprise/attendees', data)
 }
 
-export function updateAttendee(id: number, data: Partial<EnterpriseAttendeePayload>) {
-  return request.put(`/enterprise/attendees/${id}`, data)
+export function updateAttendee(id: number | string, data: EnterpriseAttendeePayload) {
+  return request.put<unknown, EnterpriseAttendee>(`/enterprise/attendees/${id}`, data)
 }
 
-export function deleteAttendee(id: number) {
+export function deleteAttendee(id: number | string) {
   return request.delete(`/enterprise/attendees/${id}`)
 }

@@ -119,6 +119,13 @@ public class EventService {
         } else if (event.getHotelEnabled() == null) {
             event.setHotelEnabled(0);
         }
+        validateEventTimeRange(event.getStartTime(), event.getEndTime());
+    }
+
+    private void validateEventTimeRange(LocalDateTime start, LocalDateTime end) {
+        if (start != null && end != null && end.isBefore(start)) {
+            throw new BizException("结束时间不能早于开始时间");
+        }
     }
 
     private LocalDateTime parseDateTime(String value) {
@@ -127,6 +134,9 @@ public class EventService {
         }
         if (value.length() <= 10) {
             return LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE).atStartOfDay();
+        }
+        if (value.length() <= 16) {
+            return LocalDateTime.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
         }
         return LocalDateTime.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }

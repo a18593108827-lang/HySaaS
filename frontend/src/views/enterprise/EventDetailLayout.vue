@@ -6,13 +6,13 @@ import { useEventStore } from '@/stores/event'
 
 const route = useRoute()
 const eventStore = useEventStore()
-const eventId = computed(() => Number(route.params.id))
+const eventId = computed(() => String(route.params.id))
 const eventTitle = ref('')
 const loading = ref(false)
 
-function resolveLocalTitle(id: number) {
-  if (eventStore.current?.id === id) return eventStore.current.title
-  return eventStore.list.find((e) => e.id === id)?.title ?? `活动 #${id}`
+function resolveLocalTitle(id: string) {
+  if (eventStore.current && String(eventStore.current.id) === id) return eventStore.current.title
+  return eventStore.list.find((e) => String(e.id) === id)?.title ?? `活动 #${id}`
 }
 
 async function loadEvent() {

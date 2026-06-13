@@ -30,6 +30,7 @@ public class EnterpriseAttendeeService {
     private final SysUserMapper sysUserMapper;
     private final EnterpriseContext enterpriseContext;
     private final PasswordEncoder passwordEncoder;
+    private final UserContactService userContactService;
 
     public PageResult<EnterpriseAttendeeVO> page(String nickname, Integer page, Integer size) {
         Long tenantId = enterpriseContext.requireTenantId();
@@ -40,7 +41,10 @@ public class EnterpriseAttendeeService {
                 .eq(SysUser::getUserType, "ATTENDEE")
                 .orderByDesc(SysUser::getCreatedAt);
         if (StringUtils.hasText(nickname)) {
-            wrapper.and(w -> w.like(SysUser::getNickname, nickname).or().like(SysUser::getUsername, nickname));
+            wrapper.and(w -> w.like(SysUser::getNickname, nickname)
+                    .or().like(SysUser::getEmail, nickname)
+                    .or().like(SysUser::getPhone, nickname)
+                    .or().like(SysUser::getUsername, nickname));
         }
         Page<SysUser> result = sysUserMapper.selectPage(new Page<>(pageNum + 1L, pageSize), wrapper);
         List<EnterpriseAttendeeVO> records = result.getRecords().stream().map(this::toVO).toList();
@@ -57,18 +61,13 @@ public class EnterpriseAttendeeService {
         if (!StringUtils.hasText(payload.getPassword())) {
             throw new BizException("密码不能为空");
         }
-        long exists = sysUserMapper.selectCount(new LambdaQueryWrapper<SysUser>()
-                .eq(SysUser::getUsername, payload.getUsername()));
-        if (exists > 0) {
-            throw new BizException("账号已存在");
-        }
         String status = StringUtils.hasText(payload.getStatus()) ? payload.getStatus() : "ENABLED";
         if (!USER_STATUSES.contains(status)) {
             throw new BizException("无效的状态");
         }
         SysUser user = new SysUser();
         user.setTenantId(tenantId);
-        user.setUsername(payload.getUsername());
+        userContactService.bindContact(user, payload.getEmail(), payload.getPhone(), null);
         user.setNickname(payload.getNickname());
         user.setUserType("ATTENDEE");
         user.setStatus(status);
@@ -82,6 +81,7 @@ public class EnterpriseAttendeeService {
     @Transactional
     public EnterpriseAttendeeVO update(Long id, EnterpriseAttendeePayload payload) {
         SysUser user = requireAttendee(id);
+        userContactService.bindContact(user, payload.getEmail(), payload.getPhone(), user.getId());
         if (StringUtils.hasText(payload.getNickname())) {
             user.setNickname(payload.getNickname());
         }
@@ -117,6 +117,9 @@ public class EnterpriseAttendeeService {
     private EnterpriseAttendeeVO toVO(SysUser user) {
         EnterpriseAttendeeVO vo = new EnterpriseAttendeeVO();
         BeanUtils.copyProperties(user, vo);
+        if (!StringUtils.hasText(vo.getEmail())) {
+            vo.setEmail(user.getUsername());
+        }
         return vo;
     }
 }

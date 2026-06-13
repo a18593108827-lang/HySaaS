@@ -72,22 +72,22 @@ async function handleSubmit() {
     try {
       await updateHotel(editingId.value, payload)
       ElMessage.success('已保存')
+      const row = list.value.find((h) => h.id === editingId.value)
+      if (row) Object.assign(row, payload)
+      dialogVisible.value = false
     } catch {
-      ElMessage.success('演示：已保存')
+      return
     }
-    const row = list.value.find((h) => h.id === editingId.value)
-    if (row) Object.assign(row, payload)
   } else {
     try {
       await createHotel(payload)
       ElMessage.success('酒店已添加')
-      load()
+      await load()
+      dialogVisible.value = false
     } catch {
-      list.value.unshift({ id: Date.now(), ...payload })
-      ElMessage.success('演示：酒店已添加')
+      return
     }
   }
-  dialogVisible.value = false
 }
 
 async function handleDelete(row: HotelInfo) {
@@ -95,11 +95,11 @@ async function handleDelete(row: HotelInfo) {
   try {
     await deleteHotel(row.id)
     ElMessage.success('已删除')
+    list.value = list.value.filter((h) => h.id !== row.id)
+    delete demoRoomMap[row.id]
   } catch {
-    ElMessage.success('演示：已删除')
+    return
   }
-  list.value = list.value.filter((h) => h.id !== row.id)
-  delete demoRoomMap[row.id]
 }
 
 async function openRooms(row: HotelInfo) {
@@ -143,25 +143,22 @@ async function handleRoomSubmit() {
     try {
       await updateHotelRoomType(hotelId, editingRoomId.value, payload)
       ElMessage.success('已保存')
+      const row = roomList.value.find((r) => r.id === editingRoomId.value)
+      if (row) Object.assign(row, payload)
+      roomDialogVisible.value = false
     } catch {
-      ElMessage.success('演示：已保存')
+      return
     }
-    const row = roomList.value.find((r) => r.id === editingRoomId.value)
-    if (row) Object.assign(row, payload)
   } else {
     try {
       await createHotelRoomType(hotelId, payload)
       ElMessage.success('房型已添加')
-      loadRooms()
+      await loadRooms()
+      roomDialogVisible.value = false
     } catch {
-      const newRoom: HotelRoomType = { id: Date.now(), hotelId, ...payload, used: 0 }
-      roomList.value.push(newRoom)
-      if (!demoRoomMap[hotelId]) demoRoomMap[hotelId] = []
-      demoRoomMap[hotelId].push(newRoom)
-      ElMessage.success('演示：房型已添加')
+      return
     }
   }
-  roomDialogVisible.value = false
 }
 
 async function handleRoomDelete(row: HotelRoomType) {
@@ -171,12 +168,12 @@ async function handleRoomDelete(row: HotelRoomType) {
   try {
     await deleteHotelRoomType(hotelId, row.id)
     ElMessage.success('已删除')
+    roomList.value = roomList.value.filter((r) => r.id !== row.id)
+    if (demoRoomMap[hotelId]) {
+      demoRoomMap[hotelId] = demoRoomMap[hotelId].filter((r) => r.id !== row.id)
+    }
   } catch {
-    ElMessage.success('演示：已删除')
-  }
-  roomList.value = roomList.value.filter((r) => r.id !== row.id)
-  if (demoRoomMap[hotelId]) {
-    demoRoomMap[hotelId] = demoRoomMap[hotelId].filter((r) => r.id !== row.id)
+    return
   }
 }
 

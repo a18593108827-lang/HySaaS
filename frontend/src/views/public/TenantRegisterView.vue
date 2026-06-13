@@ -16,9 +16,14 @@ const form = ref({
   remark: '',
 })
 
+const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 async function onSubmit() {
   if (!form.value.name || !form.value.contactName || !form.value.contactPhone || !form.value.contactEmail) {
     return ElMessage.warning('请填写必填项')
+  }
+  if (!emailRe.test(form.value.contactEmail.trim())) {
+    return ElMessage.warning('联系邮箱格式不正确')
   }
   submitting.value = true
   try {
@@ -26,8 +31,7 @@ async function onSubmit() {
     done.value = true
     ElMessage.success('申请已提交，请等待平台审核')
   } catch {
-    done.value = true
-    ElMessage.success('演示：申请已提交，请等待平台审核')
+    return
   } finally {
     submitting.value = false
   }
@@ -80,7 +84,7 @@ async function onSubmit() {
             </div>
             <div class="field">
               <label>联系邮箱 *</label>
-              <el-input v-model="form.contactEmail" placeholder="用于接收审核通知" />
+              <el-input v-model="form.contactEmail" type="email" placeholder="name@company.com" />
             </div>
             <div class="field">
               <label>企业地址</label>

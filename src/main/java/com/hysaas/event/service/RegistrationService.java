@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hysaas.common.constant.CommonConstants;
 import com.hysaas.common.dto.PageResult;
 import com.hysaas.common.exception.BizException;
+import com.hysaas.common.validation.ContactPatterns;
 import com.hysaas.event.dto.EventInviteLinkResultVO;
 import com.hysaas.event.dto.EventInviteRequest;
 import com.hysaas.event.dto.EventInviteResultVO;
@@ -91,8 +92,7 @@ public class RegistrationService {
                 continue;
             }
             EvtRegistration registration = buildRegistration(event, attendee, autoApprove ? "APPROVED" : "PENDING", "INVITE");
-            registration.setName(attendee.getNickname());
-            registration.setEmail(attendee.getUsername());
+            applyAttendeeProfile(registration, attendee);
             evtRegistrationMapper.insert(registration);
             invited++;
         }
@@ -130,8 +130,8 @@ public class RegistrationService {
         String source = StringUtils.hasText(request.getInviteToken()) ? "INVITE_LINK" : "SELF";
         EvtRegistration registration = buildRegistration(event, user, "PENDING", source);
         registration.setName(StringUtils.hasText(request.getName()) ? request.getName() : user.getNickname());
-        registration.setEmail(StringUtils.hasText(request.getEmail()) ? request.getEmail() : user.getUsername());
-        registration.setPhone(request.getPhone());
+        registration.setEmail(resolveRegistrationEmail(request.getEmail(), user));
+        registration.setPhone(resolveRegistrationPhone(request.getPhone(), user));
         registration.setMemberType(StringUtils.hasText(request.getMemberType()) ? request.getMemberType() : "普通会员");
         evtRegistrationMapper.insert(registration);
         return toVO(registration);
@@ -207,9 +207,55 @@ public class RegistrationService {
         }
     }
 
+    private void applyAttendeeProfile(EvtRegistration registration, SysUser attendee) {
+        registration.setName(attendee.getNickname());
+        registration.setEmail(StringUtils.hasText(attendee.getEmail()) ? attendee.getEmail() : attendee.getUsername());
+        registration.setPhone(attendee.getPhone());
+        registration.setMemberType("普通会员");
+    }
+
+    private String resolveRegistrationEmail(String requestEmail, SysUser user) {
+        if (StringUtils.hasText(requestEmail)) {
+            String email = requestEmail.trim().toLowerCase();
+            if (!email.matches(ContactPatterns.EMAIL_REGEX)) {
+                throw new BizException(ContactPatterns.EMAIL_MESSAGE);
+            }
+            return email;
+        }
+        if (StringUtils.hasText(user.getEmail())) {
+            return user.getEmail();
+        }
+        throw new BizException("邮箱不能为空");
+    }
+
+    private String resolveRegistrationPhone(String requestPhone, SysUser user) {
+        if (StringUtils.hasText(requestPhone)) {
+            String phone = requestPhone.trim();
+            if (!phone.matches(ContactPatterns.PHONE_REGEX)) {
+                throw new BizException(ContactPatterns.PHONE_MESSAGE);
+            }
+            return phone;
+        }
+        if (StringUtils.hasText(user.getPhone())) {
+            return user.getPhone();
+        }
+        throw new BizException("手机号不能为空");
+    }
+
     private RegistrationVO toVO(EvtRegistration registration) {
         RegistrationVO vo = new RegistrationVO();
         BeanUtils.copyProperties(registration, vo);
+        if (registration.getUserId() != null) {
+            SysUser user = sysUserMapper.selectById(registration.getUserId());
+            if (user != null) {
+                if (!StringUtils.hasText(vo.getEmail())) {
+                    vo.setEmail(StringUtils.hasText(user.getEmail()) ? user.getEmail() : user.getUsername());
+                }
+                if (!StringUtils.hasText(vo.getPhone())) {
+                    vo.setPhone(user.getPhone());
+                }
+            }
+        }
         return vo;
     }
 

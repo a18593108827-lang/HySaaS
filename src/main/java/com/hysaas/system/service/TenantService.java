@@ -12,8 +12,14 @@ import com.hysaas.system.dto.TenantUpdateRequest;
 import com.hysaas.system.dto.TenantVO;
 import com.hysaas.system.entity.SysTenant;
 import com.hysaas.system.entity.SysUser;
+import com.hysaas.system.entity.SysUserRole;
+import com.hysaas.system.entity.SysRole;
+import com.hysaas.system.entity.SysEventPermission;
 import com.hysaas.system.mapper.SysTenantMapper;
 import com.hysaas.system.mapper.SysUserMapper;
+import com.hysaas.system.mapper.SysUserRoleMapper;
+import com.hysaas.system.mapper.SysRoleMapper;
+import com.hysaas.system.mapper.SysEventPermissionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +40,9 @@ public class TenantService {
 
     private final SysTenantMapper sysTenantMapper;
     private final SysUserMapper sysUserMapper;
+    private final SysUserRoleMapper sysUserRoleMapper;
+    private final SysRoleMapper sysRoleMapper;
+    private final SysEventPermissionMapper sysEventPermissionMapper;
     private final EnterpriseRoleService enterpriseRoleService;
     private final PasswordEncoder passwordEncoder;
 
@@ -147,7 +156,19 @@ public class TenantService {
     @Transactional
     public void delete(Long id) {
         requireTenant(id);
+        deleteTenantUsers(id);
         sysTenantMapper.deleteById(id);
+    }
+
+    private void deleteTenantUsers(Long tenantId) {
+        sysEventPermissionMapper.delete(new LambdaQueryWrapper<SysEventPermission>()
+                .eq(SysEventPermission::getTenantId, tenantId));
+        sysUserRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
+                .eq(SysUserRole::getTenantId, tenantId));
+        sysUserMapper.delete(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getTenantId, tenantId));
+        sysRoleMapper.delete(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getTenantId, tenantId));
     }
 
     private SysTenant requireTenant(Long id) {
@@ -175,6 +196,8 @@ public class TenantService {
         }
         SysUser user = new SysUser();
         user.setTenantId(tenant.getId());
+        user.setEmail(tenant.getContactEmail());
+        user.setPhone(tenant.getContactPhone());
         user.setUsername(tenant.getContactEmail());
         user.setNickname(tenant.getContactName());
         user.setUserType("ENTERPRISE");

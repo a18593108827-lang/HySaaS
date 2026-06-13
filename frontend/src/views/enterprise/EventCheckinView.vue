@@ -5,7 +5,7 @@ import { getCheckinList } from '@/api/enterprise'
 
 const route = useRoute()
 const router = useRouter()
-const eventId = Number(route.params.id)
+const eventId = String(route.params.id)
 const loading = ref(false)
 const checkinCount = ref(0)
 const totalCount = ref(0)
@@ -22,8 +22,8 @@ async function load() {
     checkinCount.value = 86
     totalCount.value = 120
     list.value = [
-      { name: '王明', checkinTime: '2026-09-15 08:32' },
-      { name: '陈丽', checkinTime: '2026-09-15 08:45' },
+      { name: '王明', checkinTime: '2026-09-15' },
+      { name: '陈丽', checkinTime: '2026-09-15' },
     ]
   } finally {
     loading.value = false

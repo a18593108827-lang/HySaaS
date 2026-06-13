@@ -44,7 +44,7 @@ public class EnterpriseMemberController {
     }
 
     @PutMapping("/{id}")
-    public R<EnterpriseMemberVO> update(@PathVariable Long id, @RequestBody EnterpriseMemberPayload payload) {
+    public R<EnterpriseMemberVO> update(@PathVariable Long id, @Valid @RequestBody EnterpriseMemberPayload payload) {
         return R.ok(enterpriseMemberService.update(id, payload));
     }
 

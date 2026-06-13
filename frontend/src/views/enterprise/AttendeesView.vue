@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createAttendee, deleteAttendee, getAttendees, updateAttendee } from '@/api/enterprise'
+import { validateEmail, validatePassword, validatePhone } from '@/utils/account'
 import type { EnterpriseAttendee } from '@/types'
 
 const router = useRouter()
@@ -11,7 +12,8 @@ const list = ref<EnterpriseAttendee[]>([])
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const form = ref({
-  username: '',
+  email: '',
+  phone: '',
   nickname: '',
   password: '',
   status: 'ENABLED' as EnterpriseAttendee['status'],
@@ -22,9 +24,13 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'danger'
   DISABLED: { label: '禁用', type: 'danger' },
 }
 
+const emailError = ref('')
+const phoneError = ref('')
+const passwordErrorMsg = ref('')
+
 const demoList: EnterpriseAttendee[] = [
-  { id: 101, username: 'user@test.com', nickname: '参会用户', status: 'ENABLED', createdAt: '2026-06-01' },
-  { id: 102, username: 'wang@example.com', nickname: '王明', status: 'ENABLED', createdAt: '2026-06-03' },
+  { id: 101, username: 'user@test.com', email: 'user@test.com', phone: '13800000003', nickname: '参会用户', status: 'ENABLED', createdAt: '2026-06-01' },
+  { id: 102, username: 'wang@example.com', email: 'wang@example.com', phone: '13800001111', nickname: '王明', status: 'ENABLED', createdAt: '2026-06-03' },
 ]
 
 async function load() {
@@ -39,25 +45,53 @@ async function load() {
   }
 }
 
+function clearFieldErrors() {
+  emailError.value = ''
+  phoneError.value = ''
+  passwordErrorMsg.value = ''
+}
+
 function openCreate() {
   editingId.value = null
-  form.value = { username: '', nickname: '', password: '', status: 'ENABLED' }
+  form.value = { email: '', phone: '', nickname: '', password: '', status: 'ENABLED' }
+  clearFieldErrors()
   dialogVisible.value = true
 }
 
 function openEdit(row: EnterpriseAttendee) {
   editingId.value = row.id
-  form.value = { username: row.username, nickname: row.nickname, password: '', status: row.status }
+  form.value = {
+    email: row.email || row.username,
+    phone: row.phone || '',
+    nickname: row.nickname,
+    password: '',
+    status: row.status,
+  }
+  clearFieldErrors()
   dialogVisible.value = true
 }
 
 async function handleSubmit() {
-  if (!form.value.username || !form.value.nickname) return ElMessage.warning('请填写账号和昵称')
-  if (!editingId.value && (!form.value.password || form.value.password.length < 6)) {
-    return ElMessage.warning('密码至少 6 位')
+  clearFieldErrors()
+  if (!form.value.nickname) return ElMessage.warning('请填写昵称')
+  emailError.value = validateEmail(form.value.email)
+  phoneError.value = validatePhone(form.value.phone)
+  if (emailError.value || phoneError.value) return
+  if (!editingId.value) {
+    passwordErrorMsg.value = validatePassword(form.value.password, true)
+    if (passwordErrorMsg.value) return
+    const email = form.value.email.trim().toLowerCase()
+    if (list.value.some((a) => (a.email || a.username) === email)) {
+      emailError.value = '邮箱已被使用'
+      return
+    }
+  } else if (form.value.password) {
+    passwordErrorMsg.value = validatePassword(form.value.password, false)
+    if (passwordErrorMsg.value) return
   }
   const payload = {
-    username: form.value.username,
+    email: form.value.email.trim().toLowerCase(),
+    phone: form.value.phone.trim(),
     nickname: form.value.nickname,
     status: form.value.status,
     ...(form.value.password ? { password: form.value.password } : {}),
@@ -67,26 +101,20 @@ async function handleSubmit() {
       await updateAttendee(editingId.value, payload)
       ElMessage.success('已保存')
     } catch {
-      ElMessage.success('演示：已保存')
+      return
     }
-    const row = list.value.find((m) => m.id === editingId.value)
-    if (row) Object.assign(row, payload)
+    await load()
+    dialogVisible.value = false
   } else {
     try {
       await createAttendee(payload)
       ElMessage.success('账号已创建')
-      load()
+      await load()
+      dialogVisible.value = false
     } catch {
-      list.value.unshift({
-        id: Date.now(),
-        ...payload,
-        status: payload.status ?? 'ENABLED',
-        createdAt: new Date().toISOString().slice(0, 10),
-      } as EnterpriseAttendee)
-      ElMessage.success('演示：账号已创建')
+      return
     }
   }
-  dialogVisible.value = false
 }
 
 async function handleDelete(row: EnterpriseAttendee) {
@@ -94,10 +122,10 @@ async function handleDelete(row: EnterpriseAttendee) {
   try {
     await deleteAttendee(row.id)
     ElMessage.success('已删除')
+    list.value = list.value.filter((m) => m.id !== row.id)
   } catch {
-    ElMessage.success('演示：已删除')
+    return
   }
-  list.value = list.value.filter((m) => m.id !== row.id)
 }
 
 onMounted(load)
@@ -114,7 +142,10 @@ onMounted(load)
       <el-button @click="load">刷新</el-button>
     </div>
     <el-table v-loading="loading" :data="list" border stripe>
-      <el-table-column prop="username" label="账号" min-width="160" show-overflow-tooltip />
+      <el-table-column prop="email" label="邮箱" min-width="160" show-overflow-tooltip>
+        <template #default="{ row }">{{ row.email || row.username }}</template>
+      </el-table-column>
+      <el-table-column prop="phone" label="手机" width="130" />
       <el-table-column prop="nickname" label="昵称" width="120" />
       <el-table-column prop="status" label="状态" width="80">
         <template #default="{ row }">
@@ -133,13 +164,16 @@ onMounted(load)
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑账号' : '新建账号'" width="480px">
       <el-form label-width="80px">
-        <el-form-item label="账号" required>
-          <el-input v-model="form.username" :disabled="!!editingId" placeholder="邮箱或手机号" />
+        <el-form-item label="邮箱" required :error="emailError">
+          <el-input v-model="form.email" placeholder="登录账号，同时用于联系" />
+        </el-form-item>
+        <el-form-item label="手机" required :error="phoneError">
+          <el-input v-model="form.phone" placeholder="11 位手机号，可用于登录" />
         </el-form-item>
         <el-form-item label="昵称" required>
           <el-input v-model="form.nickname" />
         </el-form-item>
-        <el-form-item :label="editingId ? '新密码' : '密码'" :required="!editingId">
+        <el-form-item :label="editingId ? '新密码' : '密码'" :required="!editingId" :error="passwordErrorMsg">
           <el-input v-model="form.password" type="password" show-password :placeholder="editingId ? '留空则不修改' : '至少 6 位'" />
         </el-form-item>
         <el-form-item label="状态">

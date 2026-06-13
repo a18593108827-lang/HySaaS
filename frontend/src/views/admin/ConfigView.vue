@@ -34,7 +34,7 @@ async function save() {
     await updateGlobalConfig(form.value)
     ElMessage.success('配置已保存')
   } catch {
-    ElMessage.success('演示：配置已保存')
+    return
   } finally {
     saving.value = false
   }

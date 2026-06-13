@@ -5,11 +5,11 @@ export function getPortalEvents() {
   return request.get<unknown, EventItem[]>('/portal/events')
 }
 
-export function getPortalEvent(id: number, token?: string) {
+export function getPortalEvent(id: number | string, token?: string) {
   return request.get<unknown, EventItem>(`/portal/events/${id}`, { params: { token } })
 }
 
-export function submitRegistration(eventId: number, data: Record<string, string>) {
+export function submitRegistration(eventId: number | string, data: Record<string, string>) {
   return request.post(`/portal/events/${eventId}/register`, data)
 }
 
@@ -25,15 +25,15 @@ export function submitPaper(id: number) {
   return request.post(`/portal/submissions/${id}/submit`)
 }
 
-export function checkin(eventId: number, token?: string) {
+export function checkin(eventId: number | string, token?: string) {
   return request.post(`/portal/checkin/${eventId}`, token ? { token } : undefined)
 }
 
-export function getHotelRooms(eventId: number) {
+export function getHotelRooms(eventId: number | string) {
   return request.get<unknown, { id: number; name: string; price: number; quota: number }[]>(`/portal/hotels/${eventId}`)
 }
 
-export function createHotelBooking(eventId: number, data: Record<string, unknown>) {
+export function createHotelBooking(eventId: number | string, data: Record<string, unknown>) {
   return request.post(`/portal/hotels/${eventId}/book`, data)
 }
 

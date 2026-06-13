@@ -7,7 +7,7 @@ import type { Registration } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
-const eventId = Number(route.params.id)
+const eventId = String(route.params.id)
 const loading = ref(false)
 const list = ref<Registration[]>([])
 const statusFilter = ref('')
@@ -25,8 +25,8 @@ async function load() {
     list.value = res.records
   } catch {
     list.value = [
-      { id: 1, eventId, name: '王明', email: 'wang@example.com', phone: '13800001111', memberType: '付费会员', status: 'PENDING', createdAt: '2026-06-03' },
-      { id: 2, eventId, name: '陈丽', email: 'chen@example.com', phone: '13900002222', memberType: '理事会成员', status: 'APPROVED', createdAt: '2026-06-02' },
+      { id: 1, eventId: Number(eventId), name: '王明', email: 'wang@example.com', phone: '13800001111', memberType: '付费会员', status: 'PENDING', createdAt: '2026-06-03' },
+      { id: 2, eventId: Number(eventId), name: '陈丽', email: 'chen@example.com', phone: '13900002222', memberType: '理事会成员', status: 'APPROVED', createdAt: '2026-06-02' },
     ]
   } finally {
     loading.value = false
@@ -41,8 +41,7 @@ async function handleAudit(row: Registration, status: 'APPROVED' | 'REJECTED') {
     row.status = status
     ElMessage.success(`已${action}，邮件已发送`)
   } catch {
-    row.status = status
-    ElMessage.success(`演示：已${action}`)
+    return
   }
 }
 

@@ -1,14 +1,21 @@
 package com.hysaas.system.dto;
 
+import com.hysaas.common.validation.ContactPatterns;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
 public class AdminUserCreateRequest {
 
-    @NotBlank(message = "账号不能为空")
-    private String username;
+    @NotBlank(message = "邮箱不能为空")
+    @Pattern(regexp = ContactPatterns.EMAIL_REGEX, message = ContactPatterns.EMAIL_MESSAGE)
+    private String email;
+
+    @NotBlank(message = "手机号不能为空")
+    @Pattern(regexp = ContactPatterns.PHONE_REGEX, message = ContactPatterns.PHONE_MESSAGE)
+    private String phone;
 
     @NotBlank(message = "昵称不能为空")
     private String nickname;

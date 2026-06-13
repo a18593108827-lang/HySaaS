@@ -17,7 +17,7 @@ const statusMap: Record<HotelBooking['status'], { label: string; type: '' | 'suc
 
 const demoList: HotelBooking[] = [
   { id: 1, bookingNo: 'B20260601001', eventId: 1, eventTitle: '2026 医学年会', guestName: '王明', hotelName: '上海国际会议中心酒店', roomTypeName: '标准大床房', nights: 2, amount: 1360, status: 'LOCKED', createdAt: '2026-06-01' },
-  { id: 2, bookingNo: 'B20260602002', eventId: 1, eventTitle: '2026 医学年会', guestName: '陈丽', hotelName: '世博洲际酒店', roomTypeName: '商务标间', nights: 1, amount: 520, status: 'CHECKED_IN', createdAt: '2026-06-02', checkedInAt: '2026-09-15 14:20' },
+  { id: 2, bookingNo: 'B20260602002', eventId: 1, eventTitle: '2026 医学年会', guestName: '陈丽', hotelName: '世博洲际酒店', roomTypeName: '商务标间', nights: 1, amount: 520, status: 'CHECKED_IN', createdAt: '2026-06-02', checkedInAt: '2026-09-15' },
   { id: 3, bookingNo: 'B20260603003', eventId: 1, eventTitle: '2026 医学年会', guestName: '赵强', hotelName: '上海国际会议中心酒店', roomTypeName: '豪华双床房', nights: 3, amount: 2640, status: 'PENDING_PAY', createdAt: '2026-06-03' },
 ]
 
@@ -40,11 +40,11 @@ async function handleVerify(row: HotelBooking) {
   try {
     await verifyBooking(row.id)
     ElMessage.success('核销成功')
+    row.status = 'CHECKED_IN'
+    row.checkedInAt = new Date().toISOString().slice(0, 10)
   } catch {
-    ElMessage.success('演示：核销成功')
+    return
   }
-  row.status = 'CHECKED_IN'
-  row.checkedInAt = new Date().toISOString().slice(0, 16).replace('T', ' ')
 }
 
 onMounted(load)

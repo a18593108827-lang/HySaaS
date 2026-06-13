@@ -41,11 +41,10 @@ async function handleSubmit() {
     await submitReview(current.value.paperId, form.value)
     list.value = list.value.filter((r) => r.paperId !== current.value!.paperId)
     ElMessage.success('评审已提交')
+    dialogVisible.value = false
   } catch {
-    list.value = list.value.filter((r) => r.paperId !== current.value!.paperId)
-    ElMessage.success('演示：评审已提交')
+    return
   }
-  dialogVisible.value = false
 }
 
 onMounted(load)
