@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { applyInvoice, createPayOrder, getMyOrders } from '@/api/portal'
+import { applyInvoice, createPayOrder, getMyOrders, mockPay } from '@/api/portal'
+import { isMobilePayChannel, launchPay } from '@/utils/pay'
 import type { PayOrder } from '@/types'
 
 const loading = ref(false)
@@ -35,10 +36,7 @@ async function load() {
     const res = await getMyOrders()
     list.value = res.records
   } catch {
-    list.value = [
-      { id: 1, orderNo: 'P20260601001', bizType: 'REGISTRATION', amount: 500, status: 'PAID', invoiceStatus: 'NONE', createdAt: '2026-06-01' },
-      { id: 2, orderNo: 'P20260602002', bizType: 'HOTEL', amount: 680, status: 'PENDING', createdAt: '2026-06-02' },
-    ]
+    ElMessage.error('加载订单失败')
   } finally {
     loading.value = false
   }
@@ -46,9 +44,20 @@ async function load() {
 
 async function handlePay(row: PayOrder) {
   try {
-    const res = await createPayOrder({ bizType: row.bizType, bizId: row.id })
-    if (res.payUrl) window.open(res.payUrl, '_blank')
-    ElMessage.success('已跳转支付')
+    const mode = await launchPay(
+      () => createPayOrder({
+        bizType: row.bizType,
+        bizId: row.id,
+        channel: isMobilePayChannel() ? 'wap' : 'page',
+      }),
+      () => mockPay(row.id),
+    )
+    if (mode === 'alipay') {
+      ElMessage.success('正在跳转支付宝…')
+      return
+    }
+    ElMessage.success('支付成功')
+    await load()
   } catch {
     return
   }

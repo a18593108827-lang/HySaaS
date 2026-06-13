@@ -2,7 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { createHotelBooking, getHotelRooms } from '@/api/portal'
+import { createHotelBooking, createPayOrder, getHotelRooms, mockPay } from '@/api/portal'
+import { isMobilePayChannel, launchPay } from '@/utils/pay'
+import PortalBackBar from '@/components/PortalBackBar.vue'
 
 interface RoomType {
   id: number
@@ -25,10 +27,7 @@ onMounted(async () => {
   try {
     rooms.value = await getHotelRooms(eventId)
   } catch {
-    rooms.value = [
-      { id: 1, name: '标准大床房', price: 680, quota: 12 },
-      { id: 2, name: '豪华双床房', price: 880, quota: 5 },
-    ]
+    ElMessage.error('加载房型失败')
   } finally {
     loading.value = false
   }
@@ -38,9 +37,21 @@ async function onBook() {
   if (!selected.value) return ElMessage.warning('请选择房型')
   submitting.value = true
   try {
-    await createHotelBooking(eventId, { roomTypeId: selected.value, nights: nights.value })
-    ElMessage.success('预订成功，请完成支付')
-    router.push('/portal/orders')
+    const order = await createHotelBooking(eventId, { roomTypeId: selected.value, nights: nights.value })
+    const mode = await launchPay(
+      () => createPayOrder({
+        bizType: 'HOTEL',
+        bizId: order.id,
+        channel: isMobilePayChannel() ? 'wap' : 'page',
+      }),
+      () => mockPay(order.id),
+    )
+    if (mode === 'mock') {
+      ElMessage.success('预订并支付成功')
+      router.push('/portal/orders')
+    } else if (mode === 'alipay') {
+      ElMessage.success('正在跳转支付宝…')
+    }
   } catch {
     return
   } finally {
@@ -51,11 +62,13 @@ async function onBook() {
 
 <template>
   <div v-loading="loading">
+    <PortalBackBar />
     <div class="page-header">
       <h1>预订酒店</h1>
       <p>理事会成员与付费会员可预订协议酒店</p>
     </div>
-    <el-radio-group v-model="selected" class="room-list">
+    <el-empty v-if="!loading && !rooms.length" description="暂无可订房型，请确认企业端已配置酒店并开启活动酒店功能" />
+    <el-radio-group v-else v-model="selected" class="room-list">
       <el-card v-for="room in rooms" :key="room.id" shadow="never" class="room-card" :class="{ selected: selected === room.id }">
         <el-radio :value="room.id">
           <span class="room-name">{{ room.name }}</span>
@@ -64,7 +77,7 @@ async function onBook() {
         </el-radio>
       </el-card>
     </el-radio-group>
-    <el-form inline style="margin-top: 1rem">
+    <el-form v-if="rooms.length" inline style="margin-top: 1rem">
       <el-form-item label="入住晚数">
         <el-input-number v-model="nights" :min="1" :max="7" />
       </el-form-item>

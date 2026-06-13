@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getMySubmissions, saveDraft, submitPaper } from '@/api/portal'
+import PortalBackBar from '@/components/PortalBackBar.vue'
 import type { PaperSubmission } from '@/types'
 
 const loading = ref(false)
@@ -23,9 +24,7 @@ async function load() {
   try {
     list.value = await getMySubmissions()
   } catch {
-    list.value = [
-      { id: 1, title: '我的研究论文', author: '我', status: 'DRAFT', version: 1, submittedAt: '' },
-    ]
+    ElMessage.error('加载投稿列表失败')
   } finally {
     loading.value = false
   }
@@ -59,6 +58,7 @@ onMounted(load)
 
 <template>
   <div>
+    <PortalBackBar />
     <div class="page-header">
       <h1>我的投稿</h1>
       <p>保存草稿、提交稿件、查看评审状态</p>

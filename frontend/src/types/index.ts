@@ -107,7 +107,7 @@ export interface CheckinQrcodeResult {
 }
 
 export interface EventItem {
-  id: number
+  id: number | string
   title: string
   location: string
   startTime: string

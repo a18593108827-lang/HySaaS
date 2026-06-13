@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { getPortalEvent, submitRegistration } from '@/api/portal'
 import { validateEmail, validatePhone } from '@/utils/account'
+import PortalBackBar from '@/components/PortalBackBar.vue'
 import type { EventItem } from '@/types'
 
 const route = useRoute()
@@ -22,9 +23,10 @@ const phoneError = ref('')
 onMounted(async () => {
   loading.value = true
   try {
-    event.value = await getPortalEvent(Number(eventId))
+    event.value = await getPortalEvent(eventId)
   } catch {
-    event.value = { id: Number(eventId), title: '2026 医学年会', location: '上海', startTime: '2026-09-15', endTime: '2026-09-17', status: 'REGISTRATION_OPEN', registrationEnabled: true, paperEnabled: true, hotelEnabled: true }
+    ElMessage.error('加载活动信息失败')
+    router.replace('/portal/events')
   } finally {
     loading.value = false
   }
@@ -42,7 +44,7 @@ async function onSubmit() {
   if (emailError.value || phoneError.value) return
   submitting.value = true
   try {
-    await submitRegistration(Number(eventId), { ...form.value, ...(inviteToken ? { inviteToken } : {}) })
+    await submitRegistration(eventId, { ...form.value, ...(inviteToken ? { inviteToken } : {}) })
     ElMessage.success('报名已提交，等待审核')
     router.push('/portal/events')
   } catch {
@@ -55,6 +57,7 @@ async function onSubmit() {
 
 <template>
   <div v-loading="loading">
+    <PortalBackBar />
     <div class="page-header">
       <h1>活动报名</h1>
       <p v-if="event">{{ event.title }}</p>
@@ -81,7 +84,6 @@ async function onSubmit() {
       </el-form-item>
       <el-form-item>
         <el-button type="primary" :loading="submitting" @click="onSubmit">提交报名</el-button>
-        <el-button @click="router.back()">返回</el-button>
       </el-form-item>
     </el-form>
   </div>

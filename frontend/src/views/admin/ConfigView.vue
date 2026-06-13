@@ -12,6 +12,9 @@ const form = ref({
   smtpPass: '',
   alipayAppId: '',
   alipayPrivateKey: '',
+  alipayPublicKey: '',
+  alipayNotifyUrl: '',
+  alipayReturnUrl: '',
   invoiceAppKey: '',
   invoiceAppSecret: '',
 })
@@ -66,10 +69,19 @@ onMounted(load)
 
       <el-divider content-position="left">支付宝</el-divider>
       <el-form-item label="App ID">
-        <el-input v-model="form.alipayAppId" />
+        <el-input v-model="form.alipayAppId" placeholder="开放平台应用 APPID" />
       </el-form-item>
-      <el-form-item label="私钥">
-        <el-input v-model="form.alipayPrivateKey" type="textarea" :rows="3" />
+      <el-form-item label="应用私钥">
+        <el-input v-model="form.alipayPrivateKey" type="textarea" :rows="3" placeholder="RSA2 应用私钥" />
+      </el-form-item>
+      <el-form-item label="支付宝公钥">
+        <el-input v-model="form.alipayPublicKey" type="textarea" :rows="3" placeholder="开放平台「支付宝公钥」" />
+      </el-form-item>
+      <el-form-item label="异步通知 URL">
+        <el-input v-model="form.alipayNotifyUrl" placeholder="留空则用 hysaas.pay.public-base-url + /pay/alipay/notify" />
+      </el-form-item>
+      <el-form-item label="同步跳转 URL">
+        <el-input v-model="form.alipayReturnUrl" placeholder="支付完成后跳回，如 https://域名/portal/orders" />
       </el-form-item>
 
       <el-divider content-position="left">票点云</el-divider>

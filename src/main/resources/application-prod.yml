@@ -1,0 +1,9 @@
+# 生产环境：spring.profiles.active=prod
+hysaas:
+  pay:
+    mock-enabled: false
+    public-base-url: ${HYSAAS_PUBLIC_BASE_URL:https://your-api-domain.com/api}
+
+logging:
+  level:
+    com.hysaas: info

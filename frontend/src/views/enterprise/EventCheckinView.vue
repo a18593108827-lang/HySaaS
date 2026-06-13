@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { getCheckinList } from '@/api/enterprise'
 
 const route = useRoute()
@@ -19,12 +20,7 @@ async function load() {
     totalCount.value = res.total ?? 0
     list.value = res.records ?? []
   } catch {
-    checkinCount.value = 86
-    totalCount.value = 120
-    list.value = [
-      { name: '王明', checkinTime: '2026-09-15' },
-      { name: '陈丽', checkinTime: '2026-09-15' },
-    ]
+    ElMessage.error('加载签到数据失败')
   } finally {
     loading.value = false
   }

@@ -22,7 +22,7 @@ public class ConfigService {
 
     private static final List<String> CONFIG_KEYS = List.of(
             "smtpHost", "smtpPort", "smtpUser", "smtpPass",
-            "alipayAppId", "alipayPrivateKey",
+            "alipayAppId", "alipayPrivateKey", "alipayPublicKey", "alipayNotifyUrl", "alipayReturnUrl",
             "invoiceAppKey", "invoiceAppSecret"
     );
 

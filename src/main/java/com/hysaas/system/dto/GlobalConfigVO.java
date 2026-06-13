@@ -11,6 +11,9 @@ public class GlobalConfigVO {
     private String smtpPass = "";
     private String alipayAppId = "";
     private String alipayPrivateKey = "";
+    private String alipayPublicKey = "";
+    private String alipayNotifyUrl = "";
+    private String alipayReturnUrl = "";
     private String invoiceAppKey = "";
     private String invoiceAppSecret = "";
 }

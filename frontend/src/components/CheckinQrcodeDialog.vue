@@ -13,7 +13,7 @@ import {
 
 const props = defineProps<{
   modelValue: boolean
-  eventId: number
+  eventId: number | string
   eventTitle?: string
   token?: string
 }>()

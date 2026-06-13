@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { checkin, getPortalEvent } from '@/api/portal'
+import PortalBackBar from '@/components/PortalBackBar.vue'
 import type { EventItem } from '@/types'
 
 const route = useRoute()
@@ -11,6 +12,7 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const eventId = String(route.params.eventId)
+const inPortal = computed(() => route.path.startsWith('/portal/'))
 const scanToken = computed(() => (route.query.token as string) || '')
 const fromScan = computed(() => !!scanToken.value)
 
@@ -39,17 +41,12 @@ onMounted(async () => {
   try {
     event.value = await getPortalEvent(eventId, scanToken.value || undefined)
   } catch {
-    event.value = {
-      id: eventId as unknown as number,
-      title: '2026 医学年会',
-      location: '上海',
-      startTime: '2026-09-15',
-      endTime: '2026-09-17',
-      status: 'REGISTRATION_OPEN',
-      registrationEnabled: true,
-      paperEnabled: false,
-      hotelEnabled: false,
+    if (route.path.startsWith('/portal/')) {
+      ElMessage.error('加载活动信息失败')
+      router.replace('/portal/events')
+      return
     }
+    error.value = '活动信息加载失败'
   } finally {
     eventLoading.value = false
   }
@@ -77,7 +74,28 @@ function goLogin() {
 </script>
 
 <template>
-  <div class="checkin-page">
+  <div v-if="inPortal" v-loading="eventLoading" class="checkin-portal">
+    <PortalBackBar />
+    <div class="page-header">
+      <h1>现场签到</h1>
+      <p v-if="event">{{ event.title }} · {{ event.location }} · {{ event.startTime }}</p>
+    </div>
+    <el-result v-if="done" icon="success" title="签到成功" sub-title="欢迎参会，请入场" />
+    <div v-else-if="error" class="checkin-card error">
+      <p>{{ error }}</p>
+      <el-button v-if="!auth.user" type="primary" @click="goLogin">登录参会账号</el-button>
+    </div>
+    <div v-else-if="!auth.user" class="checkin-card">
+      <p>登录后可签到</p>
+      <el-button type="primary" @click="goLogin">登录签到</el-button>
+    </div>
+    <div v-else class="checkin-card">
+      <p>到达会场后，点击下方按钮完成签到</p>
+      <el-button type="primary" :loading="loading" @click="doCheckin">确认签到</el-button>
+    </div>
+  </div>
+
+  <div v-else class="checkin-page">
     <header class="checkin-header">
       <span class="logo-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -114,6 +132,10 @@ function goLogin() {
 </template>
 
 <style scoped>
+.checkin-portal {
+  max-width: 480px;
+}
+
 .checkin-page {
   min-height: 100dvh;
   display: flex;

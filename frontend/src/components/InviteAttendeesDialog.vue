@@ -7,7 +7,7 @@ import type { EnterpriseAttendee } from '@/types'
 
 const props = defineProps<{
   modelValue: boolean
-  eventId: number
+  eventId: number | string
   eventTitle?: string
 }>()
 

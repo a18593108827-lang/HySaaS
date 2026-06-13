@@ -5,6 +5,8 @@ import com.hysaas.common.result.R;
 import com.hysaas.hotel.dto.PortalBookingRequest;
 import com.hysaas.hotel.dto.PortalHotelRoomVO;
 import com.hysaas.hotel.service.HotelService;
+import com.hysaas.payment.dto.PayOrderVO;
+import com.hysaas.payment.service.PayOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +24,7 @@ import java.util.List;
 public class PortalHotelController {
 
     private final HotelService hotelService;
+    private final PayOrderService payOrderService;
 
     @GetMapping("/{eventId}")
     public R<List<PortalHotelRoomVO>> rooms(@PathVariable Long eventId) {
@@ -29,8 +32,7 @@ public class PortalHotelController {
     }
 
     @PostMapping("/{eventId}/book")
-    public R<Void> book(@PathVariable Long eventId, @RequestBody PortalBookingRequest request) {
-        hotelService.portalBook(eventId, request);
-        return R.ok();
+    public R<PayOrderVO> book(@PathVariable Long eventId, @RequestBody PortalBookingRequest request) {
+        return R.ok(payOrderService.toOrderVO(hotelService.portalBook(eventId, request)));
     }
 }

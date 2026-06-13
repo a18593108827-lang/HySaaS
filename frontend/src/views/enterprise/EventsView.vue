@@ -14,7 +14,7 @@ const eventStore = useEventStore()
 const loading = ref(false)
 const list = ref<EventItem[]>([])
 const dialogVisible = ref(false)
-const editingId = ref<number | null>(null)
+const editingId = ref<number | string | null>(null)
 const form = ref({
   title: '',
   location: '',
@@ -53,10 +53,7 @@ async function load() {
     const res = await getEvents()
     list.value = res.records
   } catch {
-    list.value = [
-      { id: 1, title: '2026 医学年会', location: '上海', startTime: '2026-09-15', endTime: '2026-09-17', status: 'REGISTRATION_OPEN', registrationEnabled: true, paperEnabled: true, hotelEnabled: true },
-      { id: 2, title: '创新技术论坛', location: '深圳', startTime: '2026-10-20', endTime: '2026-10-21', status: 'DRAFT', registrationEnabled: false, paperEnabled: false, hotelEnabled: false },
-    ]
+    ElMessage.error('加载活动列表失败')
   }
   eventStore.setList(list.value)
   loading.value = false

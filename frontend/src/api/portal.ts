@@ -1,4 +1,5 @@
 import request from './request'
+import type { PayCreateResult } from '@/utils/pay'
 import type { EventItem, InvoiceApplyPayload, PageResult, PaperSubmission, PayOrder } from '@/types'
 
 export function getPortalEvents() {
@@ -21,7 +22,7 @@ export function saveDraft(data: Partial<PaperSubmission>) {
   return request.post('/portal/submissions/draft', data)
 }
 
-export function submitPaper(id: number) {
+export function submitPaper(id: number | string) {
   return request.post(`/portal/submissions/${id}/submit`)
 }
 
@@ -34,15 +35,19 @@ export function getHotelRooms(eventId: number | string) {
 }
 
 export function createHotelBooking(eventId: number | string, data: Record<string, unknown>) {
-  return request.post(`/portal/hotels/${eventId}/book`, data)
+  return request.post<unknown, PayOrder>(`/portal/hotels/${eventId}/book`, data)
 }
 
 export function getMyOrders(params?: { page?: number }) {
   return request.get<unknown, PageResult<PayOrder>>('/portal/orders', { params })
 }
 
-export function createPayOrder(data: { bizType: string; bizId: number }) {
-  return request.post<unknown, { payUrl: string }>('/portal/pay/create', data)
+export function createPayOrder(data: { bizType: string; bizId: number | string; channel?: string }) {
+  return request.post<unknown, PayCreateResult>('/portal/pay/create', data)
+}
+
+export function mockPay(orderId: number | string) {
+  return request.post(`/portal/pay/mock/${orderId}`)
 }
 
 export function applyInvoice(data: InvoiceApplyPayload) {

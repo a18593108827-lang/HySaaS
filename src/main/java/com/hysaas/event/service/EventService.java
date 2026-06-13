@@ -9,6 +9,7 @@ import com.hysaas.event.dto.EventItemVO;
 import com.hysaas.event.dto.EventSaveRequest;
 import com.hysaas.event.entity.EvtEvent;
 import com.hysaas.event.mapper.EvtEventMapper;
+import com.hysaas.hotel.service.HotelService;
 import com.hysaas.system.support.EnterpriseContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -27,6 +28,7 @@ public class EventService {
 
     private final EvtEventMapper evtEventMapper;
     private final EnterpriseContext enterpriseContext;
+    private final HotelService hotelService;
 
     public PageResult<EventItemVO> page(Integer page, Integer size) {
         enterpriseContext.requireTenantId();
@@ -58,9 +60,13 @@ public class EventService {
     @Transactional
     public EventItemVO update(Long id, EventSaveRequest request) {
         EvtEvent event = requireEvent(id);
+        boolean wasHotelEnabled = intToBool(event.getHotelEnabled());
         applySaveRequest(event, request);
         event.setUpdatedAt(LocalDateTime.now());
         evtEventMapper.updateById(event);
+        if (!wasHotelEnabled && intToBool(event.getHotelEnabled())) {
+            hotelService.ensureEventQuotas(event.getId());
+        }
         return toVO(event);
     }
 
@@ -79,6 +85,9 @@ public class EventService {
         event.setStatus("PUBLISHED");
         event.setUpdatedAt(LocalDateTime.now());
         evtEventMapper.updateById(event);
+        if (intToBool(event.getHotelEnabled())) {
+            hotelService.ensureEventQuotas(event.getId());
+        }
         return toVO(event);
     }
 

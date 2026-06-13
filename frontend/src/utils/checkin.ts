@@ -1,24 +1,24 @@
 import QRCode from 'qrcode'
 
 export interface CheckinQrcodeData {
-  eventId: number
+  eventId: number | string
   eventTitle?: string
   token: string
   checkinUrl: string
   qrcodeDataUrl: string
 }
 
-const tokenKey = (eventId: number) => `checkin-token-${eventId}`
+const tokenKey = (eventId: number | string) => `checkin-token-${eventId}`
 
-export function getStoredCheckinToken(eventId: number) {
+export function getStoredCheckinToken(eventId: number | string) {
   return localStorage.getItem(tokenKey(eventId))
 }
 
-export function storeCheckinToken(eventId: number, token: string) {
+export function storeCheckinToken(eventId: number | string, token: string) {
   localStorage.setItem(tokenKey(eventId), token)
 }
 
-export function createCheckinToken(eventId: number) {
+export function createCheckinToken(eventId: number | string) {
   const existing = getStoredCheckinToken(eventId)
   if (existing) return existing
   const token = `${eventId}-${Date.now().toString(36)}`
@@ -26,13 +26,13 @@ export function createCheckinToken(eventId: number) {
   return token
 }
 
-export function buildCheckinUrl(eventId: number, token: string) {
+export function buildCheckinUrl(eventId: number | string, token: string) {
   const url = new URL(`/checkin/${eventId}`, window.location.origin)
   url.searchParams.set('token', token)
   return url.href
 }
 
-export async function buildCheckinQrcode(eventId: number, eventTitle?: string, token?: string) {
+export async function buildCheckinQrcode(eventId: number | string, eventTitle?: string, token?: string) {
   const t = token || createCheckinToken(eventId)
   const checkinUrl = buildCheckinUrl(eventId, t)
   const qrcodeDataUrl = await QRCode.toDataURL(checkinUrl, {

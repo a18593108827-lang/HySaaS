@@ -24,10 +24,7 @@ async function load() {
     const res = await getRegistrations(eventId, { status: statusFilter.value || undefined })
     list.value = res.records
   } catch {
-    list.value = [
-      { id: 1, eventId: Number(eventId), name: '王明', email: 'wang@example.com', phone: '13800001111', memberType: '付费会员', status: 'PENDING', createdAt: '2026-06-03' },
-      { id: 2, eventId: Number(eventId), name: '陈丽', email: 'chen@example.com', phone: '13900002222', memberType: '理事会成员', status: 'APPROVED', createdAt: '2026-06-02' },
-    ]
+    ElMessage.error('加载报名列表失败')
   } finally {
     loading.value = false
   }

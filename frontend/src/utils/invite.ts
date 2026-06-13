@@ -1,24 +1,24 @@
 import QRCode from 'qrcode'
 
 export interface InviteLinkData {
-  eventId: number
+  eventId: number | string
   eventTitle?: string
   token: string
   inviteUrl: string
   qrcodeDataUrl: string
 }
 
-const tokenKey = (eventId: number) => `invite-token-${eventId}`
+const tokenKey = (eventId: number | string) => `invite-token-${eventId}`
 
-export function getStoredInviteToken(eventId: number) {
+export function getStoredInviteToken(eventId: number | string) {
   return localStorage.getItem(tokenKey(eventId))
 }
 
-export function storeInviteToken(eventId: number, token: string) {
+export function storeInviteToken(eventId: number | string, token: string) {
   localStorage.setItem(tokenKey(eventId), token)
 }
 
-export function createInviteToken(eventId: number) {
+export function createInviteToken(eventId: number | string) {
   const existing = getStoredInviteToken(eventId)
   if (existing) return existing
   const token = `inv-${eventId}-${Date.now().toString(36)}`
@@ -26,13 +26,13 @@ export function createInviteToken(eventId: number) {
   return token
 }
 
-export function buildInviteUrl(eventId: number, token: string) {
+export function buildInviteUrl(eventId: number | string, token: string) {
   const url = new URL(`/portal/events/${eventId}/register`, window.location.origin)
   url.searchParams.set('inviteToken', token)
   return url.href
 }
 
-export async function buildInviteLinkData(eventId: number, eventTitle?: string, token?: string) {
+export async function buildInviteLinkData(eventId: number | string, eventTitle?: string, token?: string) {
   const t = token || createInviteToken(eventId)
   const inviteUrl = buildInviteUrl(eventId, t)
   const qrcodeDataUrl = await QRCode.toDataURL(inviteUrl, {

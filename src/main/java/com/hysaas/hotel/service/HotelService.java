@@ -185,6 +185,39 @@ public class HotelService {
     }
 
     @Transactional
+    public void ensureEventQuotas(Long eventId) {
+        EvtEvent event = evtEventMapper.selectById(eventId);
+        if (event == null || !intToBool(event.getHotelEnabled())) {
+            return;
+        }
+        Long tenantId = event.getTenantId();
+        List<HotelRoomType> roomTypes = hotelRoomTypeMapper.selectList(new LambdaQueryWrapper<HotelRoomType>()
+                .eq(HotelRoomType::getTenantId, tenantId));
+        for (HotelRoomType roomType : roomTypes) {
+            long exists = hotelQuotaMapper.selectCount(new LambdaQueryWrapper<HotelQuota>()
+                    .eq(HotelQuota::getEventId, eventId)
+                    .eq(HotelQuota::getRoomTypeId, roomType.getId()));
+            if (exists > 0) {
+                continue;
+            }
+            HotelQuota template = hotelQuotaMapper.selectOne(new LambdaQueryWrapper<HotelQuota>()
+                    .eq(HotelQuota::getRoomTypeId, roomType.getId())
+                    .orderByDesc(HotelQuota::getTotal)
+                    .last("LIMIT 1"));
+            if (template == null) {
+                continue;
+            }
+            HotelQuota quota = new HotelQuota();
+            quota.setTenantId(tenantId);
+            quota.setEventId(eventId);
+            quota.setRoomTypeId(roomType.getId());
+            quota.setTotal(template.getTotal());
+            quota.setUsed(0);
+            hotelQuotaMapper.insert(quota);
+        }
+    }
+
+    @Transactional
     public PayOrder portalBook(Long eventId, PortalBookingRequest request) {
         if (request.getRoomTypeId() == null) {
             throw new BizException("请选择房型");
@@ -343,10 +376,8 @@ public class HotelService {
     }
 
     private HotelQuota lockQuota(Long eventId, Long roomTypeId) {
-        HotelQuota quota = hotelQuotaMapper.selectOne(new LambdaQueryWrapper<HotelQuota>()
-                .eq(HotelQuota::getEventId, eventId)
-                .eq(HotelQuota::getRoomTypeId, roomTypeId)
-                .last("LIMIT 1 FOR UPDATE"));
+        Long tenantId = portalContext.requireTenantId();
+        HotelQuota quota = hotelQuotaMapper.selectForUpdate(eventId, roomTypeId, tenantId);
         if (quota == null) {
             throw new BizException("该活动未配置此房型配额");
         }

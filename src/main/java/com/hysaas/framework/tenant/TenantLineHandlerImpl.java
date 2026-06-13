@@ -11,7 +11,7 @@ public class TenantLineHandlerImpl implements TenantLineHandler {
 
     /** 平台级表不做租户过滤 */
     private static final Set<String> IGNORE_TABLES = Set.of(
-            "sys_tenant", "sys_config", "sys_user"
+            "sys_tenant", "sys_config", "sys_user", "pay_transaction"
     );
 
     @Override

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hysaas.common.constant.CommonConstants;
 import com.hysaas.common.dto.PageResult;
 import com.hysaas.common.exception.BizException;
+import com.hysaas.framework.config.PayProperties;
 import com.hysaas.hotel.entity.HotelBooking;
 import com.hysaas.hotel.service.HotelService;
 import com.hysaas.payment.dto.PayCreateRequest;
@@ -44,19 +45,25 @@ public class PayOrderService {
     private final EnterpriseContext enterpriseContext;
     private final RedissonClient redissonClient;
     private final HotelService hotelService;
+    private final PayProperties payProperties;
+    private final AlipayService alipayService;
 
     public PayOrderService(PayOrderMapper payOrderMapper,
                            PayTransactionMapper payTransactionMapper,
                            PortalContext portalContext,
                            EnterpriseContext enterpriseContext,
                            RedissonClient redissonClient,
-                           @Lazy HotelService hotelService) {
+                           @Lazy HotelService hotelService,
+                           PayProperties payProperties,
+                           AlipayService alipayService) {
         this.payOrderMapper = payOrderMapper;
         this.payTransactionMapper = payTransactionMapper;
         this.portalContext = portalContext;
         this.enterpriseContext = enterpriseContext;
         this.redissonClient = redissonClient;
         this.hotelService = hotelService;
+        this.payProperties = payProperties;
+        this.alipayService = alipayService;
     }
 
     public PageResult<PayOrderVO> portalOrders(Integer page, Integer size) {
@@ -93,8 +100,19 @@ public class PayOrderService {
             throw new BizException("订单状态不可支付");
         }
         PayCreateResultVO vo = new PayCreateResultVO();
-        vo.setPayUrl("/api/portal/pay/mock/" + order.getId());
+        if (payProperties.isMockEnabled()) {
+            vo.setPayMode("MOCK");
+            vo.setPayUrl("/api/portal/pay/mock/" + order.getId());
+            return vo;
+        }
+        String form = alipayService.createPayForm(order, request.getChannel());
+        vo.setPayMode("ALIPAY");
+        vo.setPayForm(form);
         return vo;
+    }
+
+    public PayOrderVO toOrderVO(PayOrder order) {
+        return toVO(order);
     }
 
     @Transactional
@@ -116,6 +134,9 @@ public class PayOrderService {
 
     @Transactional
     public void mockPay(Long orderId) {
+        if (!payProperties.isMockEnabled()) {
+            throw new BizException("当前环境未启用模拟支付");
+        }
         SysUser user = portalContext.requireAttendee();
         PayOrder order = payOrderMapper.selectById(orderId);
         if (order == null || !user.getId().equals(order.getUserId())) {
@@ -126,6 +147,10 @@ public class PayOrderService {
 
     @Transactional
     public String handleAlipayNotify(Map<String, String> params) {
+        if (!alipayService.verifyNotify(params)) {
+            log.warn("支付宝回调验签失败 params={}", params);
+            return "failure";
+        }
         String outTradeNo = params.get("out_trade_no");
         String tradeNo = params.get("trade_no");
         String tradeStatus = params.get("trade_status");

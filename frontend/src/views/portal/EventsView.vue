@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPortalEvents } from '@/api/portal'
+import { ElMessage } from 'element-plus'
 import type { EventItem } from '@/types'
 
 const router = useRouter()
@@ -13,9 +14,7 @@ async function load() {
   try {
     list.value = await getPortalEvents()
   } catch {
-    list.value = [
-      { id: 1, title: '2026 医学年会', location: '上海', startTime: '2026-09-15', endTime: '2026-09-17', status: 'REGISTRATION_OPEN', registrationEnabled: true, paperEnabled: true, hotelEnabled: true },
-    ]
+    ElMessage.error('加载活动列表失败')
   } finally {
     loading.value = false
   }
