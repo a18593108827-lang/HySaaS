@@ -7,7 +7,9 @@ import com.hysaas.common.constant.CommonConstants;
 import com.hysaas.common.dto.PageResult;
 import com.hysaas.common.exception.BizException;
 import com.hysaas.event.entity.EvtEvent;
+import com.hysaas.event.entity.EvtRegistration;
 import com.hysaas.event.mapper.EvtEventMapper;
+import com.hysaas.event.service.RegistrationService;
 import com.hysaas.hotel.dto.HotelBookingVO;
 import com.hysaas.hotel.dto.HotelInfoPayload;
 import com.hysaas.hotel.dto.HotelInfoVO;
@@ -49,6 +51,7 @@ public class HotelService {
 
     private static final Set<String> PORTAL_EVENT_STATUSES = Set.of("PUBLISHED", "REGISTRATION_OPEN", "REGISTRATION_CLOSED");
     private static final Set<String> ACTIVE_BOOKING_STATUSES = Set.of("PENDING_PAY", "LOCKED", "CHECKED_IN");
+    private static final Set<String> HOTEL_MEMBER_TYPES = Set.of("付费会员", "理事会成员");
 
     private final HotelInfoMapper hotelInfoMapper;
     private final HotelRoomTypeMapper hotelRoomTypeMapper;
@@ -59,6 +62,7 @@ public class HotelService {
     private final EnterpriseContext enterpriseContext;
     private final PortalContext portalContext;
     private final PayOrderService payOrderService;
+    private final RegistrationService registrationService;
 
     public List<HotelInfoVO> listHotels() {
         enterpriseContext.requireTenantId();
@@ -164,6 +168,7 @@ public class HotelService {
     public List<PortalHotelRoomVO> portalRooms(Long eventId) {
         portalContext.requireTenantId();
         requireHotelEvent(eventId);
+        requireHotelRegistration(eventId);
         List<HotelQuota> quotas = hotelQuotaMapper.selectList(new LambdaQueryWrapper<HotelQuota>()
                 .eq(HotelQuota::getEventId, eventId));
         return quotas.stream().map(q -> {
@@ -225,6 +230,7 @@ public class HotelService {
         int nights = request.getNights() == null || request.getNights() < 1 ? 1 : request.getNights();
         SysUser user = portalContext.requireAttendee();
         EvtEvent event = requireHotelEvent(eventId);
+        requireHotelRegistration(eventId);
         HotelRoomType roomType = hotelRoomTypeMapper.selectById(request.getRoomTypeId());
         if (roomType == null) {
             throw new BizException("房型不存在");
@@ -417,6 +423,14 @@ public class HotelService {
             throw new BizException("活动未开放酒店预订");
         }
         return event;
+    }
+
+    private void requireHotelRegistration(Long eventId) {
+        SysUser user = portalContext.requireAttendee();
+        EvtRegistration registration = registrationService.requireApprovedRegistration(eventId, user.getId());
+        if (!HOTEL_MEMBER_TYPES.contains(registration.getMemberType())) {
+            throw new BizException("仅付费会员和理事会成员可预订酒店");
+        }
     }
 
     private HotelInfo requireHotel(Long id) {

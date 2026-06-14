@@ -1,6 +1,6 @@
 import request from './request'
 import type { PayCreateResult } from '@/utils/pay'
-import type { EventItem, InvoiceApplyPayload, PageResult, PaperSubmission, PayOrder } from '@/types'
+import type { EventItem, InvoiceApplyPayload, PageResult, PaperSubmission, PayOrder, PortalRegisterResult } from '@/types'
 
 export function getPortalEvents() {
   return request.get<unknown, EventItem[]>('/portal/events')
@@ -11,14 +11,14 @@ export function getPortalEvent(id: number | string, token?: string) {
 }
 
 export function submitRegistration(eventId: number | string, data: Record<string, string>) {
-  return request.post(`/portal/events/${eventId}/register`, data)
+  return request.post<unknown, PortalRegisterResult>(`/portal/events/${eventId}/register`, data)
 }
 
 export function getMySubmissions() {
   return request.get<unknown, PaperSubmission[]>('/portal/submissions')
 }
 
-export function saveDraft(data: Partial<PaperSubmission>) {
+export function saveDraft(data: Partial<PaperSubmission> & { eventId?: number | string }) {
   return request.post('/portal/submissions/draft', data)
 }
 

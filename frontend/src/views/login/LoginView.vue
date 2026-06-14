@@ -1,11 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+
+const registerEventId = computed(() => {
+  const fromQuery = route.query.eventId
+  if (typeof fromQuery === 'string' && fromQuery) return fromQuery
+  const redirect = route.query.redirect
+  if (typeof redirect === 'string') {
+    const m = redirect.match(/\/portal\/events\/([^/]+)\/register/)
+    if (m) return m[1]
+  }
+  return ''
+})
 
 const account = ref('')
 const password = ref('')
@@ -106,7 +117,11 @@ async function onSubmit() {
           </el-button>
         </form>
 
-        <p class="footer-note">还没有账号？<router-link class="link" to="/register">企业入驻申请</router-link></p>
+        <p class="footer-note">
+          还没有账号？
+          <router-link v-if="registerEventId" class="link" :to="{ path: '/register/attendee', query: { eventId: registerEventId } }">参会注册</router-link>
+          <template v-else><router-link class="link" to="/register">企业入驻申请</router-link></template>
+        </p>
       </div>
     </main>
   </div>

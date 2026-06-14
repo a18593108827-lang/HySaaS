@@ -10,7 +10,10 @@ import com.hysaas.event.dto.EventInviteLinkResultVO;
 import com.hysaas.event.dto.EventInviteRequest;
 import com.hysaas.event.dto.EventInviteResultVO;
 import com.hysaas.event.dto.PortalRegisterRequest;
+import com.hysaas.event.dto.PortalRegisterResultVO;
 import com.hysaas.event.dto.RegistrationVO;
+import com.hysaas.payment.entity.PayOrder;
+import com.hysaas.payment.service.PayOrderService;
 import com.hysaas.event.entity.EvtEvent;
 import com.hysaas.event.entity.EvtRegistration;
 import com.hysaas.event.mapper.EvtEventMapper;
@@ -20,6 +23,7 @@ import com.hysaas.system.mapper.SysUserMapper;
 import com.hysaas.system.support.EnterpriseContext;
 import com.hysaas.system.support.PortalContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +45,7 @@ public class RegistrationService {
     private final SysUserMapper sysUserMapper;
     private final EnterpriseContext enterpriseContext;
     private final PortalContext portalContext;
+    private final @Lazy PayOrderService payOrderService;
 
     public PageResult<RegistrationVO> pageByEvent(Long eventId, String status, Integer page, Integer size) {
         requireEnterpriseEvent(eventId);
@@ -115,7 +120,7 @@ public class RegistrationService {
     }
 
     @Transactional
-    public RegistrationVO portalRegister(Long eventId, PortalRegisterRequest request) {
+    public PortalRegisterResultVO portalRegister(Long eventId, PortalRegisterRequest request) {
         SysUser user = portalContext.requireAttendee();
         EvtEvent event = requirePortalEvent(eventId);
         if (!intToBool(event.getRegistrationEnabled())) {
@@ -134,7 +139,25 @@ public class RegistrationService {
         registration.setPhone(resolveRegistrationPhone(request.getPhone(), user));
         registration.setMemberType(StringUtils.hasText(request.getMemberType()) ? request.getMemberType() : "普通会员");
         evtRegistrationMapper.insert(registration);
-        return toVO(registration);
+        PortalRegisterResultVO result = new PortalRegisterResultVO();
+        result.setRegistration(toVO(registration));
+        if (event.getRegistrationFee() != null && event.getRegistrationFee().signum() > 0) {
+            PayOrder order = payOrderService.createRegistrationOrder(user, event, registration);
+            result.setPayOrder(payOrderService.toOrderVO(order));
+        }
+        return result;
+    }
+
+    public String findMyRegistrationStatus(Long eventId, Long userId) {
+        EvtRegistration registration = findMyRegistrationEntity(eventId, userId);
+        return registration == null ? null : registration.getStatus();
+    }
+
+    public EvtRegistration findMyRegistrationEntity(Long eventId, Long userId) {
+        return evtRegistrationMapper.selectOne(new LambdaQueryWrapper<EvtRegistration>()
+                .eq(EvtRegistration::getEventId, eventId)
+                .eq(EvtRegistration::getUserId, userId)
+                .last("LIMIT 1"));
     }
 
     public EvtRegistration requireApprovedRegistration(Long eventId, Long userId) {

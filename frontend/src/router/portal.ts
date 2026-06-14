@@ -14,6 +14,12 @@ const portalRoutes: RouteRecordRaw[] = [
     meta: { title: '活动报名' },
   },
   {
+    path: 'events/:eventId/submissions',
+    name: 'PortalEventSubmissions',
+    component: () => import('@/views/portal/SubmissionsView.vue'),
+    meta: { title: '活动投稿' },
+  },
+  {
     path: 'submissions',
     name: 'PortalSubmissions',
     component: () => import('@/views/portal/SubmissionsView.vue'),

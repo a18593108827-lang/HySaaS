@@ -23,6 +23,7 @@ const form = ref({
   registrationEnabled: false,
   paperEnabled: false,
   hotelEnabled: false,
+  registrationFee: 0,
 })
 
 const defaultForm = () => ({
@@ -33,6 +34,7 @@ const defaultForm = () => ({
   registrationEnabled: false,
   paperEnabled: false,
   hotelEnabled: false,
+  registrationFee: 0,
 })
 const qrcodeVisible = ref(false)
 const qrcodeEvent = ref<EventItem | null>(null)
@@ -98,6 +100,7 @@ function openEdit(row: EventItem) {
     registrationEnabled: row.registrationEnabled,
     paperEnabled: row.paperEnabled,
     hotelEnabled: row.hotelEnabled,
+    registrationFee: row.registrationFee ?? 0,
   }
   endTimeError.value = ''
   dialogVisible.value = true
@@ -239,6 +242,9 @@ onMounted(load)
         </el-form-item>
         <el-form-item label="结束" :error="endTimeError">
           <el-date-picker v-model="form.endTime" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+        </el-form-item>
+        <el-form-item v-if="form.registrationEnabled" label="报名费">
+          <el-input-number v-model="form.registrationFee" :min="0" :precision="2" :step="10" style="width: 100%" />
         </el-form-item>
         <el-form-item label="开放功能">
           <div class="switch-group">

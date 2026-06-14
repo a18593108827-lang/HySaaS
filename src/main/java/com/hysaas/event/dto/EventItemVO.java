@@ -16,7 +16,11 @@ public class EventItemVO {
     private Boolean registrationEnabled;
     private Boolean paperEnabled;
     private Boolean hotelEnabled;
+    private java.math.BigDecimal registrationFee;
     private String inviteUrl;
     private String qrcodeUrl;
     private String checkinToken;
+    /** 当前参会人报名状态，未报名为 null */
+    private String myRegistrationStatus;
+    private String myMemberType;
 }

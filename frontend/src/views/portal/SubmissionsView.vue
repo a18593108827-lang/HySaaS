@@ -1,9 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getMySubmissions, saveDraft, submitPaper } from '@/api/portal'
 import PortalBackBar from '@/components/PortalBackBar.vue'
 import type { PaperSubmission } from '@/types'
+
+const route = useRoute()
+const eventId = computed(() => {
+  const id = route.params.eventId
+  return typeof id === 'string' && id ? id : undefined
+})
 
 const loading = ref(false)
 const list = ref<PaperSubmission[]>([])
@@ -33,7 +40,7 @@ async function load() {
 async function handleSaveDraft() {
   if (!form.value.title) return ElMessage.warning('请填写标题')
   try {
-    await saveDraft(form.value)
+    await saveDraft({ ...form.value, ...(eventId.value ? { eventId: eventId.value } : {}) })
     ElMessage.success('草稿已保存')
     dialogVisible.value = false
     form.value = { title: '', abstract: '' }

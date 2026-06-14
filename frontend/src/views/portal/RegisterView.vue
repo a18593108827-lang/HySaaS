@@ -3,7 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
-import { getPortalEvent, submitRegistration } from '@/api/portal'
+import { getPortalEvent, submitRegistration, createPayOrder, mockPay } from '@/api/portal'
+import { isMobilePayChannel, launchPay } from '@/utils/pay'
 import { validateEmail, validatePhone } from '@/utils/account'
 import PortalBackBar from '@/components/PortalBackBar.vue'
 import type { EventItem } from '@/types'
@@ -44,9 +45,26 @@ async function onSubmit() {
   if (emailError.value || phoneError.value) return
   submitting.value = true
   try {
-    await submitRegistration(eventId, { ...form.value, ...(inviteToken ? { inviteToken } : {}) })
-    ElMessage.success('报名已提交，等待审核')
-    router.push('/portal/events')
+    const result = await submitRegistration(eventId, { ...form.value, ...(inviteToken ? { inviteToken } : {}) })
+    if (result.payOrder) {
+      const mode = await launchPay(
+        () => createPayOrder({
+          bizType: 'REGISTRATION',
+          bizId: result.payOrder!.id,
+          channel: isMobilePayChannel() ? 'wap' : 'page',
+        }),
+        () => mockPay(result.payOrder!.id),
+      )
+      if (mode === 'mock') {
+        ElMessage.success('报名已提交并完成支付，等待审核')
+        router.push('/portal/events')
+      } else if (mode === 'alipay') {
+        ElMessage.success('正在跳转支付宝…')
+      }
+    } else {
+      ElMessage.success('报名已提交，等待审核')
+      router.push('/portal/events')
+    }
   } catch {
     return
   } finally {
@@ -60,7 +78,7 @@ async function onSubmit() {
     <PortalBackBar />
     <div class="page-header">
       <h1>活动报名</h1>
-      <p v-if="event">{{ event.title }}</p>
+      <p v-if="event">{{ event.title }}<span v-if="event.registrationFee"> · 报名费 ¥{{ event.registrationFee }}</span></p>
     </div>
     <el-form label-width="100px" style="max-width: 480px">
       <el-form-item label="姓名" required>

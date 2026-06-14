@@ -116,9 +116,17 @@ export interface EventItem {
   registrationEnabled: boolean
   paperEnabled: boolean
   hotelEnabled: boolean
+  registrationFee?: number
+  myRegistrationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED'
+  myMemberType?: string
   inviteUrl?: string
   qrcodeUrl?: string
   checkinToken?: string
+}
+
+export interface PortalRegisterResult {
+  registration: Registration
+  payOrder?: PayOrder
 }
 
 export interface Registration {

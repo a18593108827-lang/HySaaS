@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckRole;
 import com.hysaas.common.result.R;
 import com.hysaas.event.dto.EventItemVO;
 import com.hysaas.event.dto.PortalRegisterRequest;
+import com.hysaas.event.dto.PortalRegisterResultVO;
 import com.hysaas.event.dto.RegistrationVO;
 import com.hysaas.event.service.PortalEventService;
 import com.hysaas.event.service.RegistrationService;
@@ -39,7 +40,7 @@ public class PortalEventController {
 
     @PostMapping("/{id}/register")
     @SaCheckRole("ATTENDEE")
-    public R<RegistrationVO> register(@PathVariable Long id, @RequestBody PortalRegisterRequest request) {
+    public R<PortalRegisterResultVO> register(@PathVariable Long id, @RequestBody PortalRegisterRequest request) {
         return R.ok(registrationService.portalRegister(id, request));
     }
 }

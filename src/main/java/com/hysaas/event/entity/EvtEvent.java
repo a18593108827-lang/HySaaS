@@ -23,6 +23,7 @@ public class EvtEvent {
     private Integer registrationEnabled;
     private Integer paperEnabled;
     private Integer hotelEnabled;
+    private java.math.BigDecimal registrationFee;
     private String inviteUrl;
     private String qrcodeUrl;
     private String checkinToken;

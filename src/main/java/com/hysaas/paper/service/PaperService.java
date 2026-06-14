@@ -178,7 +178,12 @@ public class PaperService {
             throw new BizException("标题不能为空");
         }
         SysUser user = portalContext.requireAttendee();
-        Long eventId = resolvePaperEventId(user.getTenantId());
+        Long eventId = request.getEventId();
+        if (eventId == null) {
+            eventId = resolvePaperEventId(user.getTenantId());
+        } else {
+            requirePortalPaperEvent(eventId, user.getTenantId());
+        }
         PaperSubmission paper = paperSubmissionMapper.selectOne(new LambdaQueryWrapper<PaperSubmission>()
                 .eq(PaperSubmission::getUserId, user.getId())
                 .eq(PaperSubmission::getEventId, eventId)
@@ -274,6 +279,15 @@ public class PaperService {
             throw new BizException("暂无开放论文投稿的活动，请先开启活动论文功能并发布");
         }
         return event.getId();
+    }
+
+    private void requirePortalPaperEvent(Long eventId, Long tenantId) {
+        EvtEvent event = evtEventMapper.selectById(eventId);
+        if (event == null || !tenantId.equals(event.getTenantId())
+                || event.getPaperEnabled() == null || event.getPaperEnabled() != 1
+                || !PORTAL_EVENT_STATUSES.contains(event.getStatus())) {
+            throw new BizException("活动不存在或未开放论文投稿");
+        }
     }
 
     private String formatDeadline(LocalDateTime assignedAt) {

@@ -14,4 +14,5 @@ public class EventSaveRequest {
     private Boolean registrationEnabled;
     private Boolean paperEnabled;
     private Boolean hotelEnabled;
+    private java.math.BigDecimal registrationFee;
 }

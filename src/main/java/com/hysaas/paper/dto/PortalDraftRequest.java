@@ -6,6 +6,8 @@ import lombok.Data;
 @Data
 public class PortalDraftRequest {
 
+    private Long eventId;
+
     private String title;
 
     @JsonProperty("abstract")

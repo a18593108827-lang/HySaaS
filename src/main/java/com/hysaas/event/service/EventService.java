@@ -128,6 +128,14 @@ public class EventService {
         } else if (event.getHotelEnabled() == null) {
             event.setHotelEnabled(0);
         }
+        if (request.getRegistrationFee() != null) {
+            if (request.getRegistrationFee().signum() < 0) {
+                throw new BizException("报名费不能为负数");
+            }
+            event.setRegistrationFee(request.getRegistrationFee());
+        } else if (event.getRegistrationFee() == null) {
+            event.setRegistrationFee(java.math.BigDecimal.ZERO);
+        }
         validateEventTimeRange(event.getStartTime(), event.getEndTime());
     }
 

@@ -6,6 +6,8 @@ import com.hysaas.common.constant.CommonConstants;
 import com.hysaas.common.dto.PageResult;
 import com.hysaas.common.exception.BizException;
 import com.hysaas.framework.config.PayProperties;
+import com.hysaas.event.entity.EvtEvent;
+import com.hysaas.event.entity.EvtRegistration;
 import com.hysaas.hotel.entity.HotelBooking;
 import com.hysaas.hotel.service.HotelService;
 import com.hysaas.payment.dto.PayCreateRequest;
@@ -113,6 +115,23 @@ public class PayOrderService {
 
     public PayOrderVO toOrderVO(PayOrder order) {
         return toVO(order);
+    }
+
+    @Transactional
+    public PayOrder createRegistrationOrder(SysUser user, EvtEvent event, EvtRegistration registration) {
+        PayOrder order = new PayOrder();
+        order.setOrderNo(genOrderNo());
+        order.setTenantId(event.getTenantId());
+        order.setUserId(user.getId());
+        order.setBizType("REGISTRATION");
+        order.setBizId(registration.getId());
+        order.setAmount(event.getRegistrationFee());
+        order.setStatus("PENDING");
+        order.setInvoiceStatus("NONE");
+        order.setCreatedAt(LocalDateTime.now());
+        order.setUpdatedAt(LocalDateTime.now());
+        payOrderMapper.insert(order);
+        return order;
     }
 
     @Transactional

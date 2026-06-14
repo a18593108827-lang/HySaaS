@@ -106,6 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn,
     userType,
     homePath,
+    setToken,
     login,
     fetchUser,
     logout,

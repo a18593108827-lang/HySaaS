@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hysaas.common.exception.BizException;
 import com.hysaas.event.dto.EventItemVO;
 import com.hysaas.event.entity.EvtEvent;
+import com.hysaas.event.entity.EvtRegistration;
 import com.hysaas.event.mapper.EvtEventMapper;
+import com.hysaas.system.entity.SysUser;
 import com.hysaas.system.support.PortalContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -22,6 +24,7 @@ public class PortalEventService {
 
     private final EvtEventMapper evtEventMapper;
     private final PortalContext portalContext;
+    private final RegistrationService registrationService;
 
     public List<EventItemVO> listForAttendee() {
         Long tenantId = portalContext.requireTenantId();
@@ -43,20 +46,41 @@ public class PortalEventService {
             }
             return toVO(event);
         }
-        portalContext.requireTenantId();
-        if (!event.getTenantId().equals(portalContext.requireAttendee().getTenantId())
-                || !PORTAL_EVENT_STATUSES.contains(event.getStatus())) {
+        if (!PORTAL_EVENT_STATUSES.contains(event.getStatus())) {
             throw new BizException(404, "活动不存在或未发布");
         }
-        return toVO(event);
+        try {
+            SysUser user = portalContext.requireAttendee();
+            if (event.getTenantId().equals(user.getTenantId())) {
+                return toVO(event, user.getId());
+            }
+        } catch (Exception ignored) {
+        }
+        return toVO(event, null);
     }
 
     private EventItemVO toVO(EvtEvent event) {
+        Long userId = null;
+        try {
+            userId = portalContext.requireAttendee().getId();
+        } catch (Exception ignored) {
+        }
+        return toVO(event, userId);
+    }
+
+    private EventItemVO toVO(EvtEvent event, Long userId) {
         EventItemVO vo = new EventItemVO();
         BeanUtils.copyProperties(event, vo);
         vo.setRegistrationEnabled(intToBool(event.getRegistrationEnabled()));
         vo.setPaperEnabled(intToBool(event.getPaperEnabled()));
         vo.setHotelEnabled(intToBool(event.getHotelEnabled()));
+        if (userId != null) {
+            EvtRegistration registration = registrationService.findMyRegistrationEntity(event.getId(), userId);
+            if (registration != null) {
+                vo.setMyRegistrationStatus(registration.getStatus());
+                vo.setMyMemberType(registration.getMemberType());
+            }
+        }
         return vo;
     }
 

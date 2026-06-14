@@ -9,6 +9,22 @@ const router = useRouter()
 const loading = ref(false)
 const list = ref<EventItem[]>([])
 
+const regStatusLabel: Record<string, string> = {
+  PENDING: '待审核',
+  APPROVED: '已通过',
+  REJECTED: '已拒绝',
+}
+
+const hotelMemberTypes = new Set(['付费会员', '理事会成员'])
+
+function canBookHotel(item: EventItem) {
+  return item.myRegistrationStatus === 'APPROVED' && hotelMemberTypes.has(item.myMemberType || '')
+}
+
+function canCheckin(item: EventItem) {
+  return item.myRegistrationStatus === 'APPROVED'
+}
+
 async function load() {
   loading.value = true
   try {
@@ -32,13 +48,22 @@ onMounted(load)
     <el-empty v-if="!loading && !list.length" description="暂无可参与的活动" />
     <div v-else class="event-grid">
       <el-card v-for="item in list" :key="item.id" shadow="hover" class="event-card">
-        <h3>{{ item.title }}</h3>
+        <div class="card-head">
+          <h3>{{ item.title }}</h3>
+          <el-tag v-if="item.myRegistrationStatus" size="small" :type="item.myRegistrationStatus === 'APPROVED' ? 'success' : item.myRegistrationStatus === 'REJECTED' ? 'danger' : 'warning'">
+            {{ regStatusLabel[item.myRegistrationStatus] }}
+          </el-tag>
+        </div>
         <p class="meta">{{ item.location }} · {{ item.startTime }} ~ {{ item.endTime }}</p>
         <div class="actions">
-          <el-button v-if="item.registrationEnabled" type="primary" @click="router.push(`/portal/events/${item.id}/register`)">报名</el-button>
-          <el-button v-if="item.paperEnabled" @click="router.push('/portal/submissions')">投稿</el-button>
-          <el-button v-if="item.hotelEnabled" @click="router.push(`/portal/hotels/${item.id}`)">订酒店</el-button>
-          <el-button @click="router.push(`/portal/checkin/${item.id}`)">签到</el-button>
+          <el-button v-if="item.registrationEnabled && !item.myRegistrationStatus" type="primary" @click="router.push(`/portal/events/${item.id}/register`)">报名</el-button>
+          <el-button v-if="item.paperEnabled" @click="router.push(`/portal/events/${item.id}/submissions`)">投稿</el-button>
+          <el-tooltip v-if="item.hotelEnabled" :disabled="canBookHotel(item)" content="需报名审核通过，且为付费会员/理事会成员">
+            <el-button :disabled="!canBookHotel(item)" @click="router.push(`/portal/hotels/${item.id}`)">订酒店</el-button>
+          </el-tooltip>
+          <el-tooltip :disabled="canCheckin(item)" content="需报名审核通过">
+            <el-button :disabled="!canCheckin(item)" @click="router.push(`/portal/checkin/${item.id}`)">签到</el-button>
+          </el-tooltip>
         </div>
       </el-card>
     </div>
@@ -52,8 +77,16 @@ onMounted(load)
   gap: 1rem;
 }
 
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
 .event-card h3 {
-  margin: 0 0 0.5rem;
+  margin: 0;
   font-size: 1.125rem;
 }
 
