@@ -56,8 +56,8 @@ onMounted(load)
         </div>
         <p class="meta">{{ item.location }} · {{ item.startTime }} ~ {{ item.endTime }}</p>
         <div class="actions">
-          <el-button v-if="item.registrationEnabled && !item.myRegistrationStatus" type="primary" @click="router.push(`/portal/events/${item.id}/register`)">报名</el-button>
-          <el-button v-if="item.paperEnabled" @click="router.push(`/portal/events/${item.id}/submissions`)">投稿</el-button>
+          <el-button v-if="item.registrationEnabled && !item.myRegistrationStatus" type="primary" @click="router.push(`/event/${item.id}/register`)">报名</el-button>
+          <el-button v-if="item.paperEnabled" @click="router.push('/portal/submissions')">投稿</el-button>
           <el-tooltip v-if="item.hotelEnabled" :disabled="canBookHotel(item)" content="需报名审核通过，且为付费会员/理事会成员">
             <el-button :disabled="!canBookHotel(item)" @click="router.push(`/portal/hotels/${item.id}`)">订酒店</el-button>
           </el-tooltip>

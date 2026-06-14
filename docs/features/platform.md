@@ -24,7 +24,8 @@
 | 用户详情 | `/admin/users/:id` | UserDetailView | 详情 + 编辑/删除 |
 | 全局配置 | `/admin/config` | ConfigView | 需 PLATFORM |
 | 企业入驻（公开） | `/register` | TenantRegisterView | 无需登录 |
-| 登录 | `/login` | LoginView | 链到入驻申请 |
+| 活动报名（公开） | `/event/:id/register` | EventRegisterView | 无需登录 |
+| 登录 | `/login` | LoginView | 链到入驻 / 活动报名 |
 
 **导航规则**
 

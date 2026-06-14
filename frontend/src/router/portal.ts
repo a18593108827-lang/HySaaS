@@ -9,15 +9,11 @@ const portalRoutes: RouteRecordRaw[] = [
   },
   {
     path: 'events/:id/register',
-    name: 'PortalRegister',
-    component: () => import('@/views/portal/RegisterView.vue'),
-    meta: { title: '活动报名' },
+    redirect: (to) => ({ path: `/event/${to.params.id}/register`, query: to.query }),
   },
   {
     path: 'events/:eventId/submissions',
-    name: 'PortalEventSubmissions',
-    component: () => import('@/views/portal/SubmissionsView.vue'),
-    meta: { title: '活动投稿' },
+    redirect: '/portal/submissions',
   },
   {
     path: 'submissions',

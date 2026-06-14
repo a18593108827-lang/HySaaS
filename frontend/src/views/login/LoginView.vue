@@ -12,7 +12,7 @@ const registerEventId = computed(() => {
   if (typeof fromQuery === 'string' && fromQuery) return fromQuery
   const redirect = route.query.redirect
   if (typeof redirect === 'string') {
-    const m = redirect.match(/\/portal\/events\/([^/]+)\/register/)
+    const m = redirect.match(/\/event\/([^/?]+)\/register/) || redirect.match(/\/portal\/events\/([^/?]+)\/register/)
     if (m) return m[1]
   }
   return ''
@@ -119,7 +119,7 @@ async function onSubmit() {
 
         <p class="footer-note">
           还没有账号？
-          <router-link v-if="registerEventId" class="link" :to="{ path: '/register/attendee', query: { eventId: registerEventId } }">参会注册</router-link>
+          <router-link v-if="registerEventId" class="link" :to="`/event/${registerEventId}/register`">活动报名</router-link>
           <template v-else><router-link class="link" to="/register">企业入驻申请</router-link></template>
         </p>
       </div>

@@ -159,8 +159,12 @@ export interface EventInviteLinkResult {
 
 export interface PaperSubmission {
   id: number
+  eventId?: number
+  eventTitle?: string
   title: string
   author: string
+  abstract?: string
+  fileKey?: string
   status: string
   version: number
   submittedAt: string

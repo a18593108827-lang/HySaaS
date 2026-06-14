@@ -14,16 +14,29 @@ export function submitRegistration(eventId: number | string, data: Record<string
   return request.post<unknown, PortalRegisterResult>(`/portal/events/${eventId}/register`, data)
 }
 
-export function getMySubmissions() {
-  return request.get<unknown, PaperSubmission[]>('/portal/submissions')
+export function getMySubmissions(scope: 'draft' | 'submitted' = 'draft') {
+  return request.get<unknown, PaperSubmission[]>('/portal/submissions', { params: { scope } })
 }
 
-export function saveDraft(data: Partial<PaperSubmission> & { eventId?: number | string }) {
-  return request.post('/portal/submissions/draft', data)
+export function saveDraft(data: {
+  id?: number | string
+  title: string
+  author?: string
+  abstract?: string
+}) {
+  return request.post<unknown, PaperSubmission>('/portal/submissions/draft', data)
 }
 
-export function submitPaper(id: number | string) {
-  return request.post(`/portal/submissions/${id}/submit`)
+export function uploadPaperFile(id: number | string, file: File) {
+  const fd = new FormData()
+  fd.append('file', file)
+  return request.post<unknown, PaperSubmission>(`/portal/submissions/${id}/file`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+export function submitPaper(id: number | string, eventId?: number | string) {
+  return request.post(`/portal/submissions/${id}/submit`, eventId != null ? { eventId } : undefined)
 }
 
 export function checkin(eventId: number | string, token?: string) {

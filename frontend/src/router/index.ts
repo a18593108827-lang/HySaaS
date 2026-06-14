@@ -21,10 +21,21 @@ const router = createRouter({
       meta: { public: true },
     },
     {
+      path: '/event/:id/register',
+      name: 'EventRegister',
+      component: () => import('@/views/public/EventRegisterView.vue'),
+      meta: { public: true, title: '活动报名' },
+    },
+    {
       path: '/register/attendee',
-      name: 'AttendeeRegister',
-      component: () => import('@/views/public/AttendeeRegisterView.vue'),
-      meta: { public: true, title: '参会注册' },
+      redirect: (to) => {
+        const eventId = to.query.eventId
+        if (typeof eventId === 'string' && eventId) {
+          const { eventId: _, ...rest } = to.query
+          return { path: `/event/${eventId}/register`, query: rest }
+        }
+        return '/login'
+      },
     },
     {
       path: '/register',

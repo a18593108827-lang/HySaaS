@@ -10,6 +10,7 @@ import com.hysaas.event.entity.EvtEvent;
 import com.hysaas.event.mapper.EvtEventMapper;
 import com.hysaas.paper.dto.PaperAssignRequest;
 import com.hysaas.paper.dto.PaperSubmissionVO;
+import com.hysaas.paper.dto.PaperSubmitRequest;
 import com.hysaas.paper.dto.PortalDraftRequest;
 import com.hysaas.paper.dto.ReviewSubmitRequest;
 import com.hysaas.paper.dto.ReviewTaskVO;
@@ -19,6 +20,7 @@ import com.hysaas.paper.entity.PaperSubmission;
 import com.hysaas.paper.mapper.PaperReviewAssignmentMapper;
 import com.hysaas.paper.mapper.PaperReviewMapper;
 import com.hysaas.paper.mapper.PaperSubmissionMapper;
+import com.hysaas.storage.FileStorageService;
 import com.hysaas.system.entity.SysUser;
 import com.hysaas.system.mapper.SysUserMapper;
 import com.hysaas.system.service.EnterpriseRoleService;
@@ -29,6 +31,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -50,6 +54,7 @@ public class PaperService {
     private final EnterpriseContext enterpriseContext;
     private final PortalContext portalContext;
     private final EnterpriseRoleService enterpriseRoleService;
+    private final FileStorageService fileStorageService;
 
     public PageResult<PaperSubmissionVO> enterpriseList(String status, Integer page, Integer size) {
         enterpriseContext.requireTenantId();
@@ -164,11 +169,17 @@ public class PaperService {
         paperSubmissionMapper.updateById(paper);
     }
 
-    public List<PaperSubmissionVO> portalList() {
+    public List<PaperSubmissionVO> portalList(String scope) {
         SysUser user = portalContext.requireAttendee();
-        List<PaperSubmission> papers = paperSubmissionMapper.selectList(new LambdaQueryWrapper<PaperSubmission>()
+        LambdaQueryWrapper<PaperSubmission> wrapper = new LambdaQueryWrapper<PaperSubmission>()
                 .eq(PaperSubmission::getUserId, user.getId())
-                .orderByDesc(PaperSubmission::getUpdatedAt));
+                .orderByDesc(PaperSubmission::getUpdatedAt);
+        if ("draft".equals(scope)) {
+            wrapper.eq(PaperSubmission::getStatus, "DRAFT");
+        } else if ("submitted".equals(scope)) {
+            wrapper.ne(PaperSubmission::getStatus, "DRAFT");
+        }
+        List<PaperSubmission> papers = paperSubmissionMapper.selectList(wrapper);
         return papers.stream().map(this::toVO).toList();
     }
 
@@ -178,48 +189,65 @@ public class PaperService {
             throw new BizException("标题不能为空");
         }
         SysUser user = portalContext.requireAttendee();
-        Long eventId = request.getEventId();
-        if (eventId == null) {
-            eventId = resolvePaperEventId(user.getTenantId());
+        PaperSubmission paper;
+        if (request.getId() != null) {
+            paper = requireOwnPaper(request.getId(), user.getId(), Set.of("DRAFT"));
         } else {
-            requirePortalPaperEvent(eventId, user.getTenantId());
-        }
-        PaperSubmission paper = paperSubmissionMapper.selectOne(new LambdaQueryWrapper<PaperSubmission>()
-                .eq(PaperSubmission::getUserId, user.getId())
-                .eq(PaperSubmission::getEventId, eventId)
-                .eq(PaperSubmission::getStatus, "DRAFT")
-                .last("LIMIT 1"));
-        if (paper == null) {
             paper = new PaperSubmission();
             paper.setTenantId(user.getTenantId());
-            paper.setEventId(eventId);
             paper.setUserId(user.getId());
-            paper.setTitle(request.getTitle());
-            paper.setAuthor(user.getNickname());
             paper.setStatus("DRAFT");
             paper.setVersion(1);
             paper.setCreatedAt(LocalDateTime.now());
-            paper.setUpdatedAt(LocalDateTime.now());
+        }
+        paper.setTitle(request.getTitle().trim());
+        paper.setAuthor(StringUtils.hasText(request.getAuthor()) ? request.getAuthor().trim() : user.getNickname());
+        paper.setAbstractText(StringUtils.hasText(request.getAbstractText()) ? request.getAbstractText().trim() : null);
+        paper.setUpdatedAt(LocalDateTime.now());
+        if (paper.getId() == null) {
             paperSubmissionMapper.insert(paper);
         } else {
-            paper.setTitle(request.getTitle());
-            paper.setUpdatedAt(LocalDateTime.now());
             paperSubmissionMapper.updateById(paper);
         }
         return toVO(paper);
     }
 
     @Transactional
-    public PaperSubmissionVO submitPaper(Long id) {
+    public PaperSubmissionVO uploadFile(Long id, MultipartFile file) {
+        SysUser user = portalContext.requireAttendee();
+        PaperSubmission paper = requireOwnPaper(id, user.getId(), Set.of("DRAFT", "REVISION"));
+        paper.setFileKey(fileStorageService.storePaperPdf(paper.getId(), file));
+        paper.setUpdatedAt(LocalDateTime.now());
+        paperSubmissionMapper.updateById(paper);
+        return toVO(paper);
+    }
+
+    @Transactional
+    public PaperSubmissionVO submitPaper(Long id, PaperSubmitRequest request) {
         SysUser user = portalContext.requireAttendee();
         PaperSubmission paper = paperSubmissionMapper.selectById(id);
         if (paper == null || !user.getId().equals(paper.getUserId())) {
             throw new BizException(404, "稿件不存在");
         }
         if ("DRAFT".equals(paper.getStatus())) {
+            if (request == null || request.getEventId() == null) {
+                throw new BizException("请选择投稿活动");
+            }
+            EvtEvent event = requirePortalPaperEventForSubmit(request.getEventId(), user.getTenantId());
+            if (!StringUtils.hasText(paper.getFileKey())) {
+                throw new BizException("请先上传 PDF");
+            }
+            if (!StringUtils.hasText(paper.getAbstractText())) {
+                throw new BizException("请填写摘要");
+            }
+            paper.setEventId(event.getId());
+            paper.setTenantId(event.getTenantId());
             paper.setStatus("SUBMITTED");
             paper.setSubmittedAt(LocalDateTime.now());
         } else if ("REVISION".equals(paper.getStatus())) {
+            if (!StringUtils.hasText(paper.getFileKey())) {
+                throw new BizException("请先上传新版 PDF");
+            }
             paper.setStatus("RESUBMITTED");
             paper.setVersion(paper.getVersion() + 1);
             paper.setSubmittedAt(LocalDateTime.now());
@@ -230,6 +258,21 @@ public class PaperService {
         paper.setUpdatedAt(LocalDateTime.now());
         paperSubmissionMapper.updateById(paper);
         return toVO(paper);
+    }
+
+    private PaperSubmission requireOwnDraft(Long id, Long userId) {
+        return requireOwnPaper(id, userId, Set.of("DRAFT"));
+    }
+
+    private PaperSubmission requireOwnPaper(Long id, Long userId, Set<String> statuses) {
+        PaperSubmission paper = paperSubmissionMapper.selectById(id);
+        if (paper == null || !userId.equals(paper.getUserId())) {
+            throw new BizException(404, "稿件不存在");
+        }
+        if (!statuses.contains(paper.getStatus())) {
+            throw new BizException("当前状态不可操作");
+        }
+        return paper;
     }
 
     private void clearReviewData(Long submissionId) {
@@ -281,13 +324,18 @@ public class PaperService {
         return event.getId();
     }
 
-    private void requirePortalPaperEvent(Long eventId, Long tenantId) {
+    private EvtEvent requirePortalPaperEventForSubmit(Long eventId, Long tenantId) {
         EvtEvent event = evtEventMapper.selectById(eventId);
         if (event == null || !tenantId.equals(event.getTenantId())
                 || event.getPaperEnabled() == null || event.getPaperEnabled() != 1
                 || !PORTAL_EVENT_STATUSES.contains(event.getStatus())) {
             throw new BizException("活动不存在或未开放论文投稿");
         }
+        return event;
+    }
+
+    private void requirePortalPaperEvent(Long eventId, Long tenantId) {
+        requirePortalPaperEventForSubmit(eventId, tenantId);
     }
 
     private String formatDeadline(LocalDateTime assignedAt) {
@@ -300,6 +348,12 @@ public class PaperService {
     private PaperSubmissionVO toVO(PaperSubmission paper) {
         PaperSubmissionVO vo = new PaperSubmissionVO();
         BeanUtils.copyProperties(paper, vo);
+        if (paper.getEventId() != null) {
+            EvtEvent event = evtEventMapper.selectById(paper.getEventId());
+            if (event != null) {
+                vo.setEventTitle(event.getTitle());
+            }
+        }
         return vo;
     }
 }

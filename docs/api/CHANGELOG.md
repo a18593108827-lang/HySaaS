@@ -4,6 +4,18 @@
 
 ---
 
+- 登录页底部：无活动上下文时「企业入驻申请」→ `/register`；有活动 redirect 时「活动报名」→ `/event/{id}/register`
+
+## 2026-06-14 | 参会报名 / 投稿 / 支付
+
+- 公开报名页 `/event/{id}/register`；C 端 `POST /public/attendee/register`
+- 活动 `registrationFee`；报名返回 `payOrder`，bizType=REGISTRATION
+- 投稿：草稿与投递分离；`GET /portal/submissions?scope=draft|submitted`
+- 草稿 `POST /portal/submissions/draft`；PDF `POST /portal/submissions/{id}/file`
+- 投递 `POST /portal/submissions/{id}/submit` 需 `{ eventId }`
+- SQL：V8 报名费、V9 abstract_text、V10 event_id 可空
+- 文档：`attendee.md`、`event.md`、`paper.md`
+
 ## 2026-06-12 | 后端 P6 发票/邮件/WebSocket
 
 - 参会端 `POST /portal/invoices/apply`，票点云回调 `POST /invoice/callback`
@@ -57,7 +69,7 @@
 
 - 活动列表操作列新增「邀请参会」弹窗 `InviteAttendeesDialog`
 - 选人邀请：`GET /enterprise/attendees?nickname=` + `POST /enterprise/events/{id}/invites`
-- 邀请链接：`POST /enterprise/events/{id}/invite-link` → `/portal/events/{id}/register?inviteToken=`
+- 邀请链接：`POST /enterprise/events/{id}/invite-link` → `/event/{id}/register?inviteToken=`
 - 报名 `source`：SELF / INVITE / INVITE_LINK
 
 ## 2026-06-05（六）| 企业参会账号

@@ -50,9 +50,12 @@
 
 跳转详情时：`eventStore.setActiveEventId(id)` + `setCurrent(row)`；列表加载后 `setList(records)` 供详情页标题回退。
 
-新建/编辑弹窗字段：名称、地点、开始/结束时间、开放功能（报名/论文/酒店开关）。
+新建/编辑弹窗字段：名称、地点、开始/结束时间、开放功能（报名/论文/酒店开关）、**报名费**（开启报名时可选，0 为免费）。
 
 创建成功后默认 `status=DRAFT`，三个开关默认 `false`。开启后参会端 `/portal/events` 显示对应入口。
+
+**公开报名页**（参会 C 端）：`/event/{id}/register`  
+旧路径 `/portal/events/{id}/register` 自动重定向。邀请链接格式：`/event/{id}/register?inviteToken=xxx`。
 
 ### 报名审核 `/enterprise/events/:id/registrations`
 
@@ -99,7 +102,7 @@ ws://{host}/api/ws/checkin/{eventId}
 **Tab 2 — 邀请链接**
 
 - `POST /enterprise/events/{id}/invite-link` → `{ token?, inviteUrl? }`
-- 链接：`/portal/events/{id}/register?inviteToken=xxx`（与签到 token 分离）
+- 链接：`/event/{id}/register?inviteToken=xxx`（与签到 token 分离；旧 `/portal/events/...` 仍重定向）
 - 支持复制链接、展示报名二维码
 
 ### 参会扫码签到 `/checkin/:eventId?token=xxx`
@@ -141,9 +144,21 @@ axios 拦截器：`code` 为 0 或 200 时返回 `data`。
 
 | Method | Path | 说明 |
 |--------|------|------|
-| GET | `/portal/events/{id}?token=` | 活动详情 |
-| POST | `/portal/events/{id}/register` | 提交报名，body 可含 `inviteToken` |
+| GET | `/portal/events` | 本租户已发布活动列表（含报名状态） |
+| GET | `/portal/events/{id}?token=` | 活动详情；未登录可读（公开报名/签到码） |
+| POST | `/portal/events/{id}/register` | 提交报名，body 可含 `inviteToken`；返回 `{ registration, payOrder? }` |
 | POST | `/portal/checkin/{eventId}` | body `{ token? }`，扫码必传 token |
+
+### 公开页（前端路由，非 API 前缀）
+
+| 路由 | 说明 |
+|------|------|
+| `/event/{id}/register` | 公开报名：活动信息 + 注册/登录 + 报名表单 + 报名费支付 |
+| `/checkin/{eventId}?token=` | 扫码签到 |
+
+### 企业端 — 活动（补充字段）
+
+创建/更新 body 增加：`registrationFee?`（Decimal，默认 0）
 
 ---
 
@@ -180,10 +195,21 @@ Demo：接口失败时 localStorage 自生成 token，前端本地画图。
            → POST /enterprise/events/{id}/invites
            → evt_registration(user_id, event_id, source=INVITE)
   Tab2 链接 → POST /enterprise/events/{id}/invite-link
-           → /portal/events/{id}/register?inviteToken=
+           → /event/{id}/register?inviteToken=
            → POST /portal/events/{id}/register（带 inviteToken）
            → evt_registration(source=INVITE_LINK)
 ```
+
+---
+
+## 参会端活动列表 `/portal/events`
+
+| 按钮 | 条件 |
+|------|------|
+| 报名 | 开启报名且未报名 → `/event/{id}/register` |
+| 投稿 | 开启论文 → `/portal/submissions` |
+| 订酒店 | 报名已通过 + 付费会员/理事会 → `/portal/hotels/{id}` |
+| 签到 | 报名已通过 → `/portal/checkin/{id}` |
 
 ---
 
@@ -206,5 +232,7 @@ Demo：接口失败时 localStorage 自生成 token，前端本地画图。
 | EnterpriseEventController | CheckinQrcodeDialog（qrcode） |
 | EnterpriseRegistrationController | EventRegistrationsView、InviteAttendeesDialog |
 | EnterpriseEventController | EventCheckinView（checkin 列表） |
+| PortalEventController | EventsView、EventRegisterView |
 | PortalCheckinController | CheckinView |
 | CheckinWebSocketHandler | `/ws/checkin/{eventId}` 实时推送 |
+| SQL V8 | `evt_event.registration_fee` |

@@ -27,7 +27,7 @@ export function createInviteToken(eventId: number | string) {
 }
 
 export function buildInviteUrl(eventId: number | string, token: string) {
-  const url = new URL(`/portal/events/${eventId}/register`, window.location.origin)
+  const url = new URL(`/event/${eventId}/register`, window.location.origin)
   url.searchParams.set('inviteToken', token)
   return url.href
 }

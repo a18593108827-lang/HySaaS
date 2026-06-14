@@ -24,6 +24,8 @@
 
 活动需开启 `hotelEnabled=true` 后，参会人才能在 `/portal/hotels/:eventId` 预订。
 
+**预订前置**：该活动报名状态 `APPROVED`，且会员类型为「付费会员」或「理事会成员」。
+
 ## 页面行为
 
 ### 酒店列表 `/enterprise/hotels`
