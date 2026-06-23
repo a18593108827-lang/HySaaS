@@ -7,7 +7,7 @@
 | user@test.com | 参会 | `/portal/orders` |
 | ent@test.com | 企业 | `/enterprise/finance/orders` |
 
-密码任意 ≥6 位（DEV）。
+密码：`123456`。
 
 > 契约源码：`frontend/src/api/portal.ts`、`frontend/src/api/enterprise.ts`  
 > 页面源码：`portal/OrdersView.vue`、`enterprise/FinanceOrdersView.vue`  
@@ -45,7 +45,7 @@
 | Method | Path | 说明 |
 |--------|------|------|
 | GET | `/portal/orders` | Query: `page?`, `size?` |
-| POST | `/portal/pay/create` | `{ bizType, bizId }` → `{ payUrl }` |
+| POST | `/portal/pay/create` | `{ bizType, bizId, channel? }` → `{ payMode, payForm? \| payUrl? }` |
 | POST | `/portal/pay/mock/{orderId}` | DEV mock 支付（需登录） |
 
 `bizId` 为 **订单 id**（非业务单 id）。
@@ -84,3 +84,30 @@
 | PayOrderService | 下单、支付、关单、业务联动 |
 | PayOrderCloseJob | `@XxlJob("payOrderCloseJob")` |
 | `pay_order` / `pay_transaction` | 订单与流水 |
+
+---
+
+## 当前渠道
+
+| payMode | 条件 | 说明 |
+|---------|------|------|
+| MOCK | `hysaas.pay.mock-enabled=true` | 调 `POST /portal/pay/mock/{orderId}` |
+| ALIPAY | mock 关闭且支付宝已配置 | 返回 HTML form，跳转支付宝 |
+
+平台配置项见 [platform.md](./platform.md) 全局配置。
+
+---
+
+## 后续：微信支付（未实现）
+
+规划见 [全栈计划 Phase 7+](../../hysaas_全栈开发_c9f3f140.plan.md)。
+
+| 项 | 说明 |
+|----|------|
+| 配置 | `/admin/config` 扩展微信商户号、AppId、APIv3 密钥、证书 |
+| 订单 | `pay_order.pay_channel`：`ALIPAY` / `WECHAT` / `MOCK` |
+| API | `POST /portal/pay/create` 增加 `channel: wechat`；`payMode=WECHAT` |
+| 回调 | `POST /pay/wechat/notify`（验签 + 幂等，同支付宝） |
+| 场景 | JSAPI（微信内）、Native（扫码）、H5（外链） |
+| 前端 | `utils/pay.ts` 按 UA / 参数选择渠道；订单页展示微信支付 |
+| 关单 | `payOrderCloseJob` 渠道无关，继续关 PENDING 单 |

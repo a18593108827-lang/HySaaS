@@ -1,48 +1,86 @@
 ---
 name: HySaaS 全栈开发
-overview: 从零搭建 HySaaS 会议 SaaS：Spring Boot 3 模块化单体后端 + Vue3 单 SPA 三端路由，覆盖活动报名签到、论文评审、酒店预订、支付宝支付、票点云发票全链路。
+overview: HySaaS 会议 SaaS：Spring Boot 3 单体后端 + Vue3 单 SPA 三端。首期支付宝支付、票点云发票（mock）已联调；后续接入微信支付、微信发票助手。
 todos:
   - id: scaffold
-    content: 初始化 Maven 多模块后端 + Vue3 SPA + docker-compose + sql/V1__init.sql
-    status: pending
+    content: 初始化 Maven 后端 + Vue3 SPA + docker-compose + sql
+    status: completed
   - id: framework
-    content: hysaas-framework：Sa-Token、MyBatis-Plus 多租户、Redis/Redisson、MinIO、R<T>、Knife4j
-    status: pending
+    content: Sa-Token、MyBatis-Plus 多租户、Redis/Redisson、MinIO、R<T>、Knife4j
+    status: completed
   - id: auth-rbac
-    content: hysaas-system：三端登录、企业 RBAC、单场活动授权、平台租户审核/全局配置
-    status: pending
+    content: 三端登录、企业 RBAC、平台租户审核/全局配置（单场活动授权管理 API 待补）
+    status: completed
   - id: event-core
-    content: hysaas-event：活动 CRUD、二维码、报名审核、签到、WebSocket
-    status: pending
+    content: 活动 CRUD、二维码、报名审核、签到、WebSocket
+    status: completed
   - id: paper-review
-    content: hysaas-paper：投稿状态机、专家分配、评审、终审
-    status: pending
+    content: 投稿状态机、专家分配、评审、终审
+    status: completed
   - id: message
-    content: hysaas-message：SMTP 邮件模板 + RocketMQ 异步 + 状态变更触发
-    status: pending
+    content: SMTP 邮件模板 + RocketMQ 异步 + 状态变更触发
+    status: completed
   - id: hotel
-    content: hysaas-hotel：酒店协议/房型/配额、会员权限校验、房单/核销
+    content: 酒店协议/房型/配额、会员权限校验、房单/核销
+    status: completed
+  - id: payment-alipay
+    content: 支付宝下单/回调/幂等 + XXL-JOB 超时关单 + mock 支付开关
+    status: completed
+  - id: invoice-piaodian
+    content: 票点云开票接口真实对接 + 企业端发票下载
     status: pending
-  - id: payment
-    content: hysaas-payment：支付宝下单/回调/幂等 + XXL-JOB 超时关单
+  - id: payment-wechat
+    content: 微信支付（JSAPI/Native/H5）下单、回调、与 pay_order 渠道扩展
     status: pending
-  - id: invoice
-    content: hysaas-invoice：票点云开票/回调/邮件发链接
+  - id: invoice-wechat
+    content: 微信发票助手接入（开票、卡包、回调）
     status: pending
   - id: frontend
-    content: 单 SPA：login.html 移植 + 三 Layout + 全部 views 页面 + API 联调
-    status: pending
+    content: 单 SPA 三 Layout + 全部 views + API 联调
+    status: completed
 isProject: false
 ---
 
 # HySaaS 会议系统全栈开发计划
 
-## 现状
+## 现状（2026-06-23）
 
-项目仅有设计资产，无业务代码：
+首期功能已落地，代码在 `src/main/java`、`frontend/`、`sql/`：
 
-- [login.html](d:\java\xm\2026_06\hySaaS\login.html) — 登录 UI 原型（OKLCH 钴蓝设计）
-- [DESIGN.md](d:\java\xm\2026_06\hySaaS\DESIGN.md) / [PRODUCT.md](d:\java\xm\2026_06\hySaaS\PRODUCT.md)
+| 模块 | 状态 |
+|------|------|
+| 认证 / 平台租户用户配置 | 已完成；租户审核通过自动建企业管理员并邮件通知 |
+| 活动 / 报名 / 签到 / WebSocket | 已完成 |
+| 论文评审 / 邮件模板 | 已完成 |
+| 酒店 / 房单 / 支付（支付宝 + mock） | 已完成 |
+| 发票 | mock 异步开票 + 邮件链接；票点云真实 API 未接 |
+| 单场活动授权 | 表已建，`/auth/me` 返回；管理 API / 前端配置页未做 |
+| 前端三端 SPA | 已完成；已移除 API 失败 demo 假数据 |
+
+设计资产：[login.html](login.html)、[DESIGN.md](DESIGN.md)
+
+## 后续规划（Phase 7+）
+
+### 微信支付
+
+- 平台 `/admin/config` 扩展：`wechatMchId`、`wechatAppId`、`wechatApiV3Key`、`wechatCertSerial` 等
+- `pay_order` 增加 `pay_channel`（ALIPAY / WECHAT / MOCK）
+- 新增 `WechatPayService`：JSAPI（微信内）、Native（扫码）、H5；回调 `POST /pay/wechat/notify`
+- 前端 `launchPay` 按环境选择渠道；订单页展示微信支付入口
+
+### 微信发票助手
+
+- 与票点云并列的第二开票通道，或逐步替代票点云
+- 平台配置：微信发票助手商户号、授权信息
+- 参会申请发票时可选开票渠道；回调落库 `inv_invoice.channel=WECHAT`
+- 支持微信卡包领取；企业端 / 参会端发票下载
+
+### 票点云补齐
+
+- `InvoiceService` 真实调用票点云 API（替换 `mockIssue`）
+- 企业端 `FinanceInvoicesView` 下载按钮联调 `fileUrl`
+
+详细契约见 [payment.md](docs/features/payment.md)、[invoice.md](docs/features/invoice.md)。
 
 ## 架构总览
 
@@ -458,4 +496,5 @@ gantt
 - 企业发布活动 → 二维码可扫 → 参会人报名 → 审核 → 收到邮件 → 现场签到
 - 论文全流程跑通（含 REVISION 循环）+ 5 种邮件
 - 理事会/付费会员可订酒店，支付后房单生成，核销成功
-- 支付宝沙箱支付 + 申请开票 + 票点云回调 + 邮件收链接
+- 支付宝沙箱支付 + 申请开票 + mock 回调 + 邮件收链接
+- （待接）微信支付、微信发票助手、票点云真实 API

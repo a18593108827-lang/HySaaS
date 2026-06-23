@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-06-23 | 文档同步 / 租户通知 / demo 清理
+
+- 租户审核通过：自动建企业管理员 + `TENANT_APPROVED` 邮件（SMTP 未配置则跳过）
+- 前端移除 DEV 假登录、评审/订单列表 API 失败 demo 数据
+- 文档：`platform.md`、`hysaas_全栈开发_c9f3f140.plan.md` 同步现状；`payment.md` / `invoice.md` 补充微信支付、微信发票助手规划
+
+## 2026-06-14 前
+
 - 登录页底部：无活动上下文时「企业入驻申请」→ `/register`；有活动 redirect 时「活动报名」→ `/event/{id}/register`
 
 ## 2026-06-14 | 参会报名 / 投稿 / 支付

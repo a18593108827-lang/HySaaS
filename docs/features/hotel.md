@@ -6,7 +6,7 @@
 |------|-----|------|
 | ent@test.com | 企业 | `/enterprise/hotels` |
 
-密码任意 ≥6 位（DEV）。
+密码：`123456`。
 
 > 契约源码：`frontend/src/api/enterprise.ts`、`frontend/src/types/index.ts`  
 > 页面源码：`frontend/src/views/enterprise/HotelsView.vue`  

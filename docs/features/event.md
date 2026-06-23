@@ -11,7 +11,7 @@
 | ent@test.com | 企业 | `/enterprise/dashboard` |
 | user@test.com | 参会 | `/portal/events` |
 
-密码任意 ≥6 位（仅 DEV 无后端时生效）。
+密码：`123456`。
 
 > 契约源码：`frontend/src/api/enterprise.ts`、`frontend/src/api/portal.ts`、`frontend/src/types/index.ts`  
 > 页面源码：`frontend/src/views/enterprise/`、`frontend/src/components/CheckinQrcodeDialog.vue`、`frontend/src/views/portal/CheckinView.vue`

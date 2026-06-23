@@ -34,6 +34,7 @@ public class EmailTemplateService {
         CODE_NAMES.put("REG_REJECTED", "报名拒绝");
         CODE_NAMES.put("PAY_SUCCESS", "支付成功");
         CODE_NAMES.put("INVOICE_READY", "发票就绪");
+        CODE_NAMES.put("TENANT_APPROVED", "入驻审核通过");
     }
 
     private final MsgEmailTemplateMapper msgEmailTemplateMapper;
@@ -71,6 +72,10 @@ public class EmailTemplateService {
         }
         template.setUpdatedAt(LocalDateTime.now());
         msgEmailTemplateMapper.updateById(template);
+    }
+
+    public void ensureTenantDefaults(Long tenantId) {
+        ensureDefaults(tenantId);
     }
 
     public MsgEmailTemplate resolve(Long tenantId, Long eventId, String code) {
@@ -143,8 +148,13 @@ public class EmailTemplateService {
             template.setTenantId(tenantId);
             template.setEventId(eventId);
             template.setCode(entry.getKey());
-            template.setSubject(entry.getValue());
-            template.setBody("尊敬的 {{name}}，关于 {{eventName}}：{{status}}");
+            if ("TENANT_APPROVED".equals(entry.getKey())) {
+                template.setSubject("企业入驻审核通过");
+                template.setBody("尊敬的 {{name}}，{{tenantName}} 入驻申请已通过。企业端登录账号：{{username}}，初始密码：{{password}}，请登录后尽快修改密码。");
+            } else {
+                template.setSubject(entry.getValue());
+                template.setBody("尊敬的 {{name}}，关于 {{eventName}}：{{status}}");
+            }
             template.setCreatedAt(now);
             template.setUpdatedAt(now);
             msgEmailTemplateMapper.insert(template);

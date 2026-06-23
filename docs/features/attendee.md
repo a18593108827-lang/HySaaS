@@ -7,7 +7,7 @@
 | user@test.com | 参会 | `/portal/events` |
 | ent@test.com | 企业 | `/enterprise/attendees` |
 
-密码任意 ≥6 位（DEV）。
+密码：`123456`。
 
 > 契约：`frontend/src/api/enterprise.ts`、`frontend/src/api/public.ts`、`frontend/src/api/portal.ts`  
 > 页面：`AttendeesView.vue`、`public/EventRegisterView.vue`、`login/LoginView.vue`  

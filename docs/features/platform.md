@@ -8,7 +8,7 @@
 | ent@test.com | 企业 | `/enterprise/dashboard` |
 | user@test.com | 参会 | `/portal/events` |
 
-密码任意 ≥6 位（仅 DEV 无后端时生效）。
+密码：`123456`（种子数据 `sql/V1__init.sql`）。
 
 > 契约源码：`frontend/src/api/admin.ts`、`frontend/src/api/auth.ts`、`frontend/src/api/public.ts`、`frontend/src/types/index.ts`  
 > 页面源码：`frontend/src/views/admin/`、`frontend/src/views/public/TenantRegisterView.vue`、`frontend/src/views/login/LoginView.vue`
@@ -39,7 +39,7 @@
 
 | 展示 | API |
 |------|-----|
-| 待审核 / 已开通 / 租户总数 | `GET /admin/tenants`（pending/approved 仍为 demo，total 可联调） |
+| 待审核 / 已开通 / 租户总数 | `GET /admin/dashboard/stats` |
 | 快捷入口 | 跳转租户管理、用户管理、全局配置 |
 
 ### 用户列表 `/admin/users`
@@ -111,8 +111,12 @@
 |------|-----|
 | 加载 | `GET /admin/config` |
 | 保存 | `PUT /admin/config` |
+| SMTP 测试 | `POST /admin/config/test-email` body: `{ to }` |
+| 发信记录 | `GET /admin/config/email-logs` |
 
-字段：`smtpHost`、`smtpPort`、`smtpUser`、`smtpPass`、`alipayAppId`、`alipayPrivateKey`、`invoiceAppKey`、`invoiceAppSecret`
+字段：`smtpHost`、`smtpPort`、`smtpUser`、`smtpPass`、`alipayAppId`、`alipayPrivateKey`、`alipayPublicKey`、`alipayNotifyUrl`、`alipayReturnUrl`、`invoiceAppKey`、`invoiceAppSecret`
+
+> 后续扩展（未实现）：微信支付、微信发票助手相关密钥字段见 [payment.md](./payment.md)、[invoice.md](./invoice.md)。
 
 ---
 
@@ -128,7 +132,11 @@
 | POST | `/auth/logout` | 登出 |
 | GET | `/auth/me` | `UserInfo` |
 
-DEV：登录失败时 admin→PLATFORM、ent→ENTERPRISE、其余→ATTENDEE。
+### 平台 — 概览
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/admin/dashboard/stats` | `{ pending, approved, total }` |
 
 ### 公开 — 企业入驻
 
@@ -163,6 +171,8 @@ DEV：登录失败时 admin→PLATFORM、ent→ENTERPRISE、其余→ATTENDEE。
 |--------|------|------|
 | GET | `/admin/config` | 全局配置对象 |
 | PUT | `/admin/config` | 保存配置 |
+| POST | `/admin/config/test-email` | SMTP 测试 |
+| GET | `/admin/config/email-logs` | 平台发信记录 |
 
 ---
 
@@ -251,36 +261,26 @@ PENDING → REJECTED   （平台拒绝）
 
 平台 /admin/tenants 审核通过
   → PUT /admin/tenants/{id}/audit { APPROVED }
-  → 创建企业管理员账号，绑定 tenant_id
-平台 /admin/users 审核通过租户后创建 ent 账号
-  → 或平台手动新建 ENTERPRISE / ATTENDEE 用户
+  → 创建企业管理员（联系邮箱作账号，初始密码 123456）
+  → SMTP 已配置时发 TENANT_APPROVED 邮件通知账号与密码
+平台 /admin/users 手动新建 ENTERPRISE / ATTENDEE 用户
 
-参会 user@test.com：平台创建 ATTENDEE 账号后登录
-  → 无 /register 个人注册页
+参会：活动公开报名页 `/event/{id}/register` 可自助注册 ATTENDEE；平台亦可在 `/admin/users` 创建
 ```
 
 ---
 
-## Demo 数据
+## 与全栈计划差异
 
-接口失败时列表/demo 详情：
-
-| name | status |
-|------|--------|
-| 华东医学会 | PENDING |
-| 深圳创新峰会 | APPROVED |
-
----
-
-## 与 plan.md 差异
-
-| 项 | plan.md | 当前前端 |
-|----|---------|----------|
-| 租户 API | GET/PUT 列表审核 | 完整 CRUD + 独立 audit 接口 |
+| 项 | 原计划 | 当前实现 |
+|----|--------|----------|
+| 租户 API | GET/PUT 列表审核 | 完整 CRUD + 独立 `audit` 接口 |
 | 入驻 | 隐含注册 | `/register` 公开申请页 |
-| 概览统计 | — | pending/approved 仍为 demo |
-| 参会注册 | 自助开号 | 仅平台创建用户，无 C 端注册页 |
-| 用户管理 | plan 隐含 sys_user | `/admin/users` CRUD 已实现 |
+| 概览统计 | — | `GET /admin/dashboard/stats` |
+| 参会注册 | 仅平台创建 | 活动报名页可自助注册 + 平台创建 |
+| 用户管理 | plan 隐含 sys_user | `/admin/users` CRUD |
+| 单场活动授权 | sys_event_permission | 表与 `/auth/me` 已接，管理 API/配置页未做 |
+| 支付 / 发票 | 支付宝 + 票点云 | 支付宝已接；票点云为 mock；微信支付、微信发票助手待接 |
 
 ---
 
@@ -290,6 +290,8 @@ PENDING → REJECTED   （平台拒绝）
 |------|----------|
 | AuthController | LoginView、路由守卫 |
 | PublicTenantController | TenantRegisterView |
+| AdminDashboardController | DashboardView |
 | AdminTenantController | TenantsView、TenantDetailView |
 | AdminUserController | UsersView、UserDetailView |
-| AdminConfigController | ConfigView（含 SMTP/支付宝/票点云） |
+| AdminConfigController | ConfigView（SMTP/支付宝/票点云、测试发信、发信记录） |
+| TenantService | 审核通过创建企业管理员 + TENANT_APPROVED 邮件 |

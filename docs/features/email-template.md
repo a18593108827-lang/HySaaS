@@ -7,7 +7,7 @@
 | ent@test.com | 企业 | `/enterprise/email-templates` |
 | admin@test.com | 平台 | `/admin/config`（SMTP 测试） |
 
-密码任意 ≥6 位（DEV）。
+密码：`123456`。
 
 > 契约源码：`frontend/src/api/enterprise.ts`、`frontend/src/api/admin.ts`  
 > 页面源码：`frontend/src/views/enterprise/EmailTemplatesView.vue`、`frontend/src/views/admin/ConfigView.vue`  
@@ -32,7 +32,7 @@
 | SMTP 测试 | `POST /admin/config/test-email` body: `{ to }` |
 | 平台发信记录 | `GET /admin/config/email-logs` |
 
-支持变量：`{{name}}`、`{{eventName}}`、`{{status}}`、`{{orderNo}}`、`{{amount}}`、`{{fileUrl}}`
+支持变量：`{{name}}`、`{{eventName}}`、`{{status}}`、`{{orderNo}}`、`{{amount}}`、`{{fileUrl}}`、`{{tenantName}}`、`{{username}}`、`{{password}}`
 
 ---
 
@@ -72,6 +72,7 @@
 | REG_REJECTED | 报名拒绝 | 报名审核拒绝 |
 | PAY_SUCCESS | 支付成功 | 订单支付成功 |
 | INVOICE_READY | 发票就绪 | 开票回调（含 mock） |
+| TENANT_APPROVED | 入驻审核通过 | 租户审核通过创建企业管理员 |
 
 ---
 

@@ -21,9 +21,8 @@ async function load() {
   try {
     list.value = await getReviewTasks()
   } catch {
-    list.value = [
-      { paperId: 2, title: '新型材料力学性能研究', author: '李四', deadline: '2026-06-10' },
-    ]
+    list.value = []
+    ElMessage.error('加载待审稿件失败')
   } finally {
     loading.value = false
   }

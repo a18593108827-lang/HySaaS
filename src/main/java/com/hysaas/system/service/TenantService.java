@@ -20,6 +20,8 @@ import com.hysaas.system.mapper.SysUserMapper;
 import com.hysaas.system.mapper.SysUserRoleMapper;
 import com.hysaas.system.mapper.SysRoleMapper;
 import com.hysaas.system.mapper.SysEventPermissionMapper;
+import com.hysaas.message.service.EmailService;
+import com.hysaas.message.service.EmailTemplateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,7 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -45,6 +49,8 @@ public class TenantService {
     private final SysEventPermissionMapper sysEventPermissionMapper;
     private final EnterpriseRoleService enterpriseRoleService;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final EmailTemplateService emailTemplateService;
 
     @Transactional
     public TenantVO apply(TenantApplyRequest request) {
@@ -104,7 +110,9 @@ public class TenantService {
         tenant.setUpdatedAt(LocalDateTime.now());
         sysTenantMapper.insert(tenant);
         if ("APPROVED".equals(status)) {
-            ensureEnterpriseAdmin(tenant);
+            if (ensureEnterpriseAdmin(tenant)) {
+                notifyEnterpriseAdminCreated(tenant);
+            }
         }
         return toVO(tenant);
     }
@@ -148,7 +156,9 @@ public class TenantService {
         tenant.setUpdatedAt(LocalDateTime.now());
         sysTenantMapper.updateById(tenant);
         if ("APPROVED".equals(request.getStatus())) {
-            ensureEnterpriseAdmin(tenant);
+            if (ensureEnterpriseAdmin(tenant)) {
+                notifyEnterpriseAdminCreated(tenant);
+            }
         }
         return toVO(tenant);
     }
@@ -179,20 +189,20 @@ public class TenantService {
         return tenant;
     }
 
-    private void ensureEnterpriseAdmin(SysTenant tenant) {
+    private boolean ensureEnterpriseAdmin(SysTenant tenant) {
         if (!StringUtils.hasText(tenant.getContactEmail())) {
-            return;
+            return false;
         }
         long exists = sysUserMapper.selectCount(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getTenantId, tenant.getId())
                 .eq(SysUser::getUserType, "ENTERPRISE"));
         if (exists > 0) {
-            return;
+            return false;
         }
         long usernameUsed = sysUserMapper.selectCount(new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getUsername, tenant.getContactEmail()));
         if (usernameUsed > 0) {
-            return;
+            return false;
         }
         SysUser user = new SysUser();
         user.setTenantId(tenant.getId());
@@ -207,6 +217,17 @@ public class TenantService {
         user.setUpdatedAt(LocalDateTime.now());
         sysUserMapper.insert(user);
         enterpriseRoleService.replaceRoles(user.getId(), tenant.getId(), List.of("ADMIN"));
+        return true;
+    }
+
+    private void notifyEnterpriseAdminCreated(SysTenant tenant) {
+        emailTemplateService.ensureTenantDefaults(tenant.getId());
+        Map<String, String> vars = new HashMap<>();
+        vars.put("name", tenant.getContactName() != null ? tenant.getContactName() : "");
+        vars.put("tenantName", tenant.getName());
+        vars.put("username", tenant.getContactEmail());
+        vars.put("password", DEFAULT_ENTERPRISE_PASSWORD);
+        emailService.sendTemplate(tenant.getId(), null, "TENANT_APPROVED", tenant.getContactEmail(), vars);
     }
 
     private TenantVO toVO(SysTenant tenant) {

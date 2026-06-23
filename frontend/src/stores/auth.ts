@@ -27,7 +27,6 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = ''
     user.value = null
     localStorage.removeItem('token')
-    localStorage.removeItem('demo-user-type')
   }
 
   async function login(params: LoginParams) {
@@ -37,26 +36,6 @@ export const useAuthStore = defineStore('auth', () => {
       setToken(res.token)
       await fetchUser()
       return res
-    } catch {
-      if (import.meta.env.DEV) {
-        const userType: UserType = params.username.includes('admin')
-          ? 'PLATFORM'
-          : params.username.includes('ent')
-            ? 'ENTERPRISE'
-            : 'ATTENDEE'
-        setToken('demo-token')
-        localStorage.setItem('demo-user-type', userType)
-        user.value = {
-          id: 1,
-          username: params.username,
-          nickname: '演示用户',
-          userType,
-          roles: [],
-          eventPermissions: [],
-        }
-        return { token: 'demo-token', userType }
-      }
-      throw new Error('账号或密码不正确')
     } finally {
       loading.value = false
     }
@@ -64,21 +43,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchUser() {
     if (!token.value) return null
-    if (token.value === 'demo-token') {
-      if (!user.value) {
-        const saved = localStorage.getItem('demo-user-type') as UserType | null
-        const userType = saved && HOME_MAP[saved] ? saved : 'ATTENDEE'
-        user.value = {
-          id: 1,
-          username: 'demo',
-          nickname: '演示用户',
-          userType,
-          roles: [],
-          eventPermissions: [],
-        }
-      }
-      return user.value
-    }
     user.value = await getMe()
     return user.value
   }

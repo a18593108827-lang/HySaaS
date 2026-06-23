@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { getOrders } from '@/api/enterprise'
 import type { PayOrder } from '@/types'
 
@@ -12,10 +13,8 @@ async function load() {
     const res = await getOrders()
     list.value = res.records
   } catch {
-    list.value = [
-      { id: 1, orderNo: 'P20260601001', bizType: 'REGISTRATION', amount: 500, status: 'PAID', createdAt: '2026-06-01' },
-      { id: 2, orderNo: 'P20260602002', bizType: 'HOTEL', amount: 680, status: 'PENDING', createdAt: '2026-06-02' },
-    ]
+    list.value = []
+    ElMessage.error('加载订单失败')
   } finally {
     loading.value = false
   }
