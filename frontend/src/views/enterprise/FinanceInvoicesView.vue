@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { getInvoices } from '@/api/enterprise'
+import { invoiceStatusMap } from '@/utils/labels'
 
 interface Invoice {
   id: number
@@ -21,7 +21,6 @@ async function load() {
     list.value = await getInvoices()
   } catch {
     list.value = []
-    ElMessage.error('加载发票列表失败')
   } finally {
     loading.value = false
   }
@@ -36,11 +35,14 @@ onMounted(load)
       <h1>发票管理</h1>
       <p>票点云开票记录</p>
     </div>
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-empty v-if="!loading && !list.length" description="暂无发票" />
+    <el-table v-else v-loading="loading" :data="list" border stripe>
       <el-table-column prop="orderNo" label="关联订单" width="160" />
       <el-table-column prop="title" label="发票抬头" min-width="160" />
       <el-table-column prop="amount" label="金额(元)" width="100" />
-      <el-table-column prop="status" label="状态" width="100" />
+      <el-table-column prop="status" label="状态" width="100">
+        <template #default="{ row }">{{ invoiceStatusMap[row.status] || row.status }}</template>
+      </el-table-column>
       <el-table-column prop="createdAt" label="开票时间" width="120" />
       <el-table-column label="操作" width="100">
         <template #default>

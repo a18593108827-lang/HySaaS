@@ -11,6 +11,7 @@ interface ReviewTask {
 }
 
 const loading = ref(false)
+const submitting = ref(false)
 const list = ref<ReviewTask[]>([])
 const dialogVisible = ref(false)
 const current = ref<ReviewTask | null>(null)
@@ -22,7 +23,6 @@ async function load() {
     list.value = await getReviewTasks()
   } catch {
     list.value = []
-    ElMessage.error('加载待审稿件失败')
   } finally {
     loading.value = false
   }
@@ -36,6 +36,7 @@ function openReview(row: ReviewTask) {
 
 async function handleSubmit() {
   if (!current.value || !form.value.comment) return ElMessage.warning('请填写评审意见')
+  submitting.value = true
   try {
     await submitReview(current.value.paperId, form.value)
     list.value = list.value.filter((r) => r.paperId !== current.value!.paperId)
@@ -43,6 +44,8 @@ async function handleSubmit() {
     dialogVisible.value = false
   } catch {
     return
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -82,7 +85,7 @@ onMounted(load)
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">提交评审</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">提交评审</el-button>
       </template>
     </el-dialog>
   </div>

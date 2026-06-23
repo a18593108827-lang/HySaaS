@@ -28,6 +28,8 @@ const auth = useAuthStore()
 
 const active = computed(() => route.path)
 const expanded = ref(new Set<string>())
+const drawerOpen = ref(false)
+const loggingOut = ref(false)
 
 function isParentActive(item: NavItem) {
   return active.value === item.path || active.value.startsWith(`${item.path}/`)
@@ -55,7 +57,10 @@ function syncExpanded() {
   })
 }
 
-watch(() => route.path, syncExpanded, { immediate: true })
+watch(() => route.path, () => {
+  syncExpanded()
+  drawerOpen.value = false
+}, { immediate: true })
 watch(() => props.nav, syncExpanded, { deep: true })
 
 function onParentClick(item: NavItem) {
@@ -71,9 +76,20 @@ function onParentClick(item: NavItem) {
   else expanded.value.add(item.path)
 }
 
+function goNav(path: string, disabled?: boolean) {
+  if (disabled) return
+  router.push(path)
+  drawerOpen.value = false
+}
+
 async function onLogout() {
-  await auth.logout()
-  router.push('/login')
+  loggingOut.value = true
+  try {
+    await auth.logout()
+    router.push('/login')
+  } finally {
+    loggingOut.value = false
+  }
 }
 </script>
 
@@ -132,16 +148,58 @@ async function onLogout() {
     </aside>
     <div class="main-area">
       <header class="topbar">
-        <h2 class="page-title">{{ (route.meta.title as string) || title }}</h2>
+        <div class="topbar-left">
+          <el-button class="mobile-menu-btn" text @click="drawerOpen = true">菜单</el-button>
+          <h2 class="page-title">{{ (route.meta.title as string) || title }}</h2>
+        </div>
         <div class="user-area">
           <span class="user-name">{{ auth.user?.nickname || auth.user?.username }}</span>
-          <el-button text type="primary" @click="onLogout">退出</el-button>
+          <el-button text type="primary" :loading="loggingOut" @click="onLogout">退出</el-button>
         </div>
       </header>
       <main class="content">
         <router-view />
       </main>
     </div>
+
+    <el-drawer v-model="drawerOpen" direction="ltr" size="260px" :with-header="false" class="mobile-drawer">
+      <div class="drawer-brand">{{ title }}</div>
+      <nav class="drawer-nav">
+        <template v-for="item in nav" :key="item.path">
+          <button
+            v-if="item.children?.length"
+            type="button"
+            class="drawer-item"
+            :class="{ active: isParentActive(item) }"
+            @click="onParentClick(item)"
+          >
+            {{ item.label }}
+          </button>
+          <button
+            v-else
+            type="button"
+            class="drawer-item"
+            :class="{ active: isParentActive(item) }"
+            @click="goNav(item.path)"
+          >
+            {{ item.label }}
+          </button>
+          <div v-if="item.children?.length" class="drawer-sub">
+            <button
+              v-for="child in item.children"
+              :key="child.path"
+              type="button"
+              class="drawer-sub-item"
+              :class="{ active: isChildActive(child), disabled: child.disabled }"
+              :disabled="child.disabled"
+              @click="goNav(child.path, child.disabled)"
+            >
+              {{ child.label }}
+            </button>
+          </div>
+        </template>
+      </nav>
+    </el-drawer>
   </div>
 </template>
 
@@ -309,6 +367,13 @@ async function onLogout() {
   box-shadow: 0 1px 0 rgb(0 11 71 / 0.04);
 }
 
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
 .page-title {
   margin: 0;
   font-size: 1rem;
@@ -334,8 +399,67 @@ async function onLogout() {
   background: var(--surface);
 }
 
+.drawer-brand {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--navy);
+  padding: 0.5rem 0 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+}
+
+.drawer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drawer-item,
+.drawer-sub-item {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.drawer-item:hover,
+.drawer-sub-item:hover:not(:disabled) {
+  background: var(--surface);
+}
+
+.drawer-item.active,
+.drawer-sub-item.active {
+  background: rgb(45 91 255 / 0.1);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.drawer-sub {
+  padding-left: 0.75rem;
+}
+
+.drawer-sub-item {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.drawer-sub-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .sidebar {
+    display: none;
+  }
+
+  .user-name {
     display: none;
   }
 }

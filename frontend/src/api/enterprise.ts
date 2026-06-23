@@ -49,7 +49,7 @@ export function proxyCheckin(eventId: number | string, registrationId: number | 
   return request.post(`/enterprise/events/${eventId}/checkin/registrations/${registrationId}`)
 }
 
-export function getPapers(params?: { status?: string }) {
+export function getPapers(params?: { status?: string; page?: number; size?: number }) {
   return request.get<unknown, PageResult<PaperSubmission>>('/enterprise/papers', { params })
 }
 
@@ -117,7 +117,7 @@ export function getEmailLogs(params?: { page?: number; size?: number }) {
   return request.get<unknown, { records: { id: number; code: string; recipient: string; subject: string; status: string; errorMsg?: string; retryCount: number; createdAt: string }[]; total: number }>('/enterprise/email-templates/logs', { params })
 }
 
-export function getOrders(params?: { page?: number }) {
+export function getOrders(params?: { page?: number; size?: number }) {
   return request.get<unknown, PageResult<PayOrder>>('/enterprise/finance/orders', { params })
 }
 

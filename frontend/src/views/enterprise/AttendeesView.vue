@@ -3,11 +3,15 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createAttendee, deleteAttendee, getAttendees, updateAttendee } from '@/api/enterprise'
+import ListPagination from '@/components/ListPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import { validateEmail, validatePassword, validatePhone } from '@/utils/account'
 import type { EnterpriseAttendee } from '@/types'
 
 const router = useRouter()
+const { page, size, total, resetPage } = usePagination()
 const loading = ref(false)
+const submitting = ref(false)
 const list = ref<EnterpriseAttendee[]>([])
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
@@ -31,14 +35,26 @@ const passwordErrorMsg = ref('')
 async function load() {
   loading.value = true
   try {
-    const res = await getAttendees()
+    const res = await getAttendees({ page: page.value, size: size.value })
     list.value = res.records
+    total.value = res.total
   } catch {
     list.value = []
-    ElMessage.error('加载参会账号失败')
+    total.value = 0
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(p: number) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(s: number) {
+  size.value = s
+  resetPage()
+  load()
 }
 
 function clearFieldErrors() {
@@ -93,15 +109,19 @@ async function handleSubmit() {
     ...(form.value.password ? { password: form.value.password } : {}),
   }
   if (editingId.value) {
+    submitting.value = true
     try {
       await updateAttendee(editingId.value, payload)
       ElMessage.success('已保存')
+      await load()
+      dialogVisible.value = false
     } catch {
       return
+    } finally {
+      submitting.value = false
     }
-    await load()
-    dialogVisible.value = false
   } else {
+    submitting.value = true
     try {
       await createAttendee(payload)
       ElMessage.success('账号已创建')
@@ -109,6 +129,8 @@ async function handleSubmit() {
       dialogVisible.value = false
     } catch {
       return
+    } finally {
+      submitting.value = false
     }
   }
 }
@@ -137,7 +159,8 @@ onMounted(load)
       <el-button type="primary" @click="openCreate">新建账号</el-button>
       <el-button @click="load">刷新</el-button>
     </div>
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-empty v-if="!loading && !list.length" description="暂无参会账号" />
+    <el-table v-else v-loading="loading" :data="list" border stripe>
       <el-table-column prop="email" label="邮箱" min-width="160" show-overflow-tooltip>
         <template #default="{ row }">{{ row.email || row.username }}</template>
       </el-table-column>
@@ -157,6 +180,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <ListPagination :total="total" :page="page" :size="size" @change="onPageChange" @size-change="onSizeChange" />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑账号' : '新建账号'" width="480px">
       <el-form label-width="80px">
@@ -181,7 +205,7 @@ onMounted(load)
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">{{ editingId ? '保存' : '创建' }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ editingId ? '保存' : '创建' }}</el-button>
       </template>
     </el-dialog>
   </div>

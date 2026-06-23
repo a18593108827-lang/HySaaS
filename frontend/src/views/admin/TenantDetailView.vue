@@ -3,12 +3,14 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { auditTenant, deleteTenant, getTenant, updateTenant } from '@/api/admin'
+import { validEmail } from '@/utils/account'
 import type { Tenant } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const tenantId = computed(() => String(route.params.id))
 const loading = ref(false)
+const submitting = ref(false)
 const tenant = ref<Tenant | null>(null)
 const dialogVisible = ref(false)
 const form = ref({
@@ -21,12 +23,10 @@ const form = ref({
 })
 
 const statusMap: Record<string, { label: string; type: '' | 'success' | 'warning' | 'danger' }> = {
-  PENDING: { label: '待审核', type: 'warning' },
-  APPROVED: { label: '已通过', type: 'success' },
-  REJECTED: { label: '已拒绝', type: 'danger' },
+  PENDING: { label: '???', type: 'warning' },
+  APPROVED: { label: '???', type: 'success' },
+  REJECTED: { label: '???', type: 'danger' },
 }
-
-const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 async function load() {
   loading.value = true
@@ -34,7 +34,6 @@ async function load() {
     tenant.value = await getTenant(tenantId.value)
   } catch {
     tenant.value = null
-    ElMessage.error('加载租户详情失败')
   } finally {
     loading.value = false
   }
@@ -42,12 +41,12 @@ async function load() {
 
 async function handleAudit(status: 'APPROVED' | 'REJECTED') {
   if (!tenant.value) return
-  const action = status === 'APPROVED' ? '通过' : '拒绝'
-  await ElMessageBox.confirm(`确认${action}租户「${tenant.value.name}」？`, '审核确认')
+  const action = status === 'APPROVED' ? '??' : '??'
+  await ElMessageBox.confirm(`??${action}???${tenant.value.name}??`, '????')
   try {
     await auditTenant(tenant.value.id, status)
     tenant.value.status = status
-    ElMessage.success(`已${action}`)
+    ElMessage.success(`?${action}`)
   } catch {
     return
   }
@@ -55,10 +54,10 @@ async function handleAudit(status: 'APPROVED' | 'REJECTED') {
 
 async function handleDelete() {
   if (!tenant.value) return
-  await ElMessageBox.confirm(`删除租户「${tenant.value.name}」？`, '删除确认', { type: 'warning' })
+  await ElMessageBox.confirm(`?????${tenant.value.name}??`, '????', { type: 'warning' })
   try {
     await deleteTenant(tenant.value.id)
-    ElMessage.success('已删除')
+    ElMessage.success('???')
     router.push('/admin/tenants')
   } catch {
     return
@@ -81,15 +80,21 @@ function openEdit() {
 async function handleSubmit() {
   if (!tenant.value) return
   if (!form.value.name || !form.value.contactName || !form.value.contactPhone) {
-    return ElMessage.warning('请填写必填项')
+    return ElMessage.warning('??????')
   }
+  if (form.value.contactEmail?.trim() && !validEmail(form.value.contactEmail)) {
+    return ElMessage.warning('?????????')
+  }
+  submitting.value = true
   try {
     await updateTenant(tenant.value.id, form.value)
-    ElMessage.success('已保存')
+    ElMessage.success('???')
     Object.assign(tenant.value, form.value)
     dialogVisible.value = false
   } catch {
     return
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -99,7 +104,7 @@ onMounted(load)
 <template>
   <div v-loading="loading">
     <div class="toolbar">
-      <el-button link type="primary" @click="router.push('/admin/tenants')">← 返回列表</el-button>
+      <el-button link type="primary" @click="router.push('/admin/tenants')">? ????</el-button>
     </div>
     <template v-if="tenant">
       <div class="page-header">
@@ -107,48 +112,48 @@ onMounted(load)
         <el-tag :type="statusMap[tenant.status]?.type">{{ statusMap[tenant.status]?.label }}</el-tag>
       </div>
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="联系人">{{ tenant.contactName }}</el-descriptions-item>
-        <el-descriptions-item label="联系电话">{{ tenant.contactPhone }}</el-descriptions-item>
-        <el-descriptions-item label="联系邮箱">{{ tenant.contactEmail || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="地址">{{ tenant.address || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="申请时间">{{ tenant.createdAt }}</el-descriptions-item>
-        <el-descriptions-item label="更新时间">{{ tenant.updatedAt || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ tenant.remark || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="???">{{ tenant.contactName }}</el-descriptions-item>
+        <el-descriptions-item label="????">{{ tenant.contactPhone }}</el-descriptions-item>
+        <el-descriptions-item label="????">{{ tenant.contactEmail || '?' }}</el-descriptions-item>
+        <el-descriptions-item label="??">{{ tenant.address || '?' }}</el-descriptions-item>
+        <el-descriptions-item label="????">{{ tenant.createdAt }}</el-descriptions-item>
+        <el-descriptions-item label="????">{{ tenant.updatedAt || '?' }}</el-descriptions-item>
+        <el-descriptions-item label="??" :span="2">{{ tenant.remark || '?' }}</el-descriptions-item>
       </el-descriptions>
       <div class="actions">
-        <el-button type="primary" @click="openEdit">编辑</el-button>
+        <el-button type="primary" @click="openEdit">??</el-button>
         <template v-if="tenant.status === 'PENDING'">
-          <el-button type="primary" @click="handleAudit('APPROVED')">通过</el-button>
-          <el-button type="danger" @click="handleAudit('REJECTED')">拒绝</el-button>
+          <el-button type="primary" @click="handleAudit('APPROVED')">??</el-button>
+          <el-button type="danger" @click="handleAudit('REJECTED')">??</el-button>
         </template>
-        <el-button type="danger" plain @click="handleDelete">删除</el-button>
+        <el-button type="danger" plain @click="handleDelete">??</el-button>
       </div>
     </template>
 
-    <el-dialog v-model="dialogVisible" title="编辑租户" width="520px">
+    <el-dialog v-model="dialogVisible" title="????" width="520px">
       <el-form label-width="90px">
-        <el-form-item label="企业名称" required>
+        <el-form-item label="????" required>
           <el-input v-model="form.name" />
         </el-form-item>
-        <el-form-item label="联系人" required>
+        <el-form-item label="???" required>
           <el-input v-model="form.contactName" />
         </el-form-item>
-        <el-form-item label="联系电话" required>
+        <el-form-item label="????" required>
           <el-input v-model="form.contactPhone" />
         </el-form-item>
-        <el-form-item label="联系邮箱">
+        <el-form-item label="????">
           <el-input v-model="form.contactEmail" />
         </el-form-item>
-        <el-form-item label="地址">
+        <el-form-item label="??">
           <el-input v-model="form.address" />
         </el-form-item>
-        <el-form-item label="备注">
+        <el-form-item label="??">
           <el-input v-model="form.remark" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">保存</el-button>
+        <el-button @click="dialogVisible = false">??</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">??</el-button>
       </template>
     </el-dialog>
   </div>

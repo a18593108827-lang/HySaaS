@@ -10,6 +10,7 @@ const route = useRoute()
 const router = useRouter()
 const userId = computed(() => String(route.params.id))
 const loading = ref(false)
+const submitting = ref(false)
 const user = ref<AdminUser | null>(null)
 const dialogVisible = ref(false)
 const form = ref({
@@ -40,7 +41,6 @@ async function load() {
     user.value = await getUser(userId.value)
   } catch {
     user.value = null
-    ElMessage.error('加载用户详情失败')
   } finally {
     loading.value = false
   }
@@ -77,12 +77,15 @@ async function handleSubmit() {
     status: form.value.status,
     ...(form.value.password ? { password: form.value.password } : {}),
   }
+  submitting.value = true
   try {
     user.value = await updateUser(user.value.id, payload)
     ElMessage.success('已保存')
     dialogVisible.value = false
   } catch {
     return
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -149,7 +152,7 @@ onMounted(load)
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">保存</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">保存</el-button>
       </template>
     </el-dialog>
   </div>

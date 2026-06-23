@@ -14,6 +14,7 @@ import {
 import type { HotelInfo, HotelRoomType } from '@/types'
 
 const loading = ref(false)
+const submitting = ref(false)
 const list = ref<HotelInfo[]>([])
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
@@ -25,6 +26,7 @@ const activeHotel = ref<HotelInfo | null>(null)
 const roomList = ref<HotelRoomType[]>([])
 const roomDialogVisible = ref(false)
 const editingRoomId = ref<number | null>(null)
+const roomSubmitting = ref(false)
 const roomForm = ref({ name: '', price: 0, quota: 0 })
 
 async function load() {
@@ -33,7 +35,6 @@ async function load() {
     list.value = await getHotels()
   } catch {
     list.value = []
-    ElMessage.error('加载酒店列表失败')
   } finally {
     loading.value = false
   }
@@ -54,25 +55,24 @@ function openEdit(row: HotelInfo) {
 async function handleSubmit() {
   if (!form.value.name || !form.value.contactPhone) return ElMessage.warning('请填写酒店名称和联系电话')
   const payload = { ...form.value }
-  if (editingId.value) {
-    try {
+  submitting.value = true
+  try {
+    if (editingId.value) {
       await updateHotel(editingId.value, payload)
       ElMessage.success('已保存')
       const row = list.value.find((h) => h.id === editingId.value)
       if (row) Object.assign(row, payload)
       dialogVisible.value = false
-    } catch {
-      return
-    }
-  } else {
-    try {
+    } else {
       await createHotel(payload)
       ElMessage.success('酒店已添加')
       await load()
       dialogVisible.value = false
-    } catch {
-      return
     }
+  } catch {
+    return
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -100,7 +100,6 @@ async function loadRooms() {
     roomList.value = await getHotelRoomTypes(activeHotel.value.id)
   } catch {
     roomList.value = []
-    ElMessage.error('加载房型列表失败')
   } finally {
     roomLoading.value = false
   }
@@ -125,25 +124,24 @@ async function handleRoomSubmit() {
   if (roomForm.value.quota <= 0) return ElMessage.warning('配额须大于 0')
   const hotelId = activeHotel.value.id
   const payload = { ...roomForm.value }
-  if (editingRoomId.value) {
-    try {
+  roomSubmitting.value = true
+  try {
+    if (editingRoomId.value) {
       await updateHotelRoomType(hotelId, editingRoomId.value, payload)
       ElMessage.success('已保存')
       const row = roomList.value.find((r) => r.id === editingRoomId.value)
       if (row) Object.assign(row, payload)
       roomDialogVisible.value = false
-    } catch {
-      return
-    }
-  } else {
-    try {
+    } else {
       await createHotelRoomType(hotelId, payload)
       ElMessage.success('房型已添加')
       await loadRooms()
       roomDialogVisible.value = false
-    } catch {
-      return
     }
+  } catch {
+    return
+  } finally {
+    roomSubmitting.value = false
   }
 }
 
@@ -173,7 +171,8 @@ onMounted(load)
       <el-button type="primary" @click="openCreate">添加酒店</el-button>
       <el-button @click="load">刷新</el-button>
     </div>
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-empty v-if="!loading && !list.length" description="暂无酒店" />
+    <el-table v-else v-loading="loading" :data="list" border stripe>
       <el-table-column prop="name" label="酒店名称" min-width="200" />
       <el-table-column prop="address" label="地址" min-width="160" />
       <el-table-column prop="contactPhone" label="联系电话" width="140" />
@@ -200,7 +199,7 @@ onMounted(load)
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">{{ editingId ? '保存' : '添加' }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ editingId ? '保存' : '添加' }}</el-button>
       </template>
     </el-dialog>
 
@@ -209,7 +208,8 @@ onMounted(load)
         <el-button type="primary" size="small" @click="openRoomCreate">添加房型</el-button>
         <el-button size="small" @click="loadRooms">刷新</el-button>
       </div>
-      <el-table v-loading="roomLoading" :data="roomList" border stripe size="small">
+      <el-empty v-if="!roomLoading && !roomList.length" description="暂无房型" />
+      <el-table v-else v-loading="roomLoading" :data="roomList" border stripe size="small">
         <el-table-column prop="name" label="房型" min-width="120" />
         <el-table-column prop="price" label="协议价(元)" width="100" />
         <el-table-column label="配额" width="100">
@@ -240,7 +240,7 @@ onMounted(load)
       </el-form>
       <template #footer>
         <el-button @click="roomDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleRoomSubmit">{{ editingRoomId ? '保存' : '添加' }}</el-button>
+        <el-button type="primary" :loading="roomSubmitting" @click="handleRoomSubmit">{{ editingRoomId ? '保存' : '添加' }}</el-button>
       </template>
     </el-dialog>
   </div>

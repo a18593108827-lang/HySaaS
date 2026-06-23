@@ -3,11 +3,15 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createUser, deleteUser, getTenants, getUsers, updateUser } from '@/api/admin'
+import ListPagination from '@/components/ListPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import { validateEmail, validatePassword, validatePhone } from '@/utils/account'
 import type { AdminUser, UserType } from '@/types'
 
 const router = useRouter()
+const { page, size, total, resetPage } = usePagination()
 const loading = ref(false)
+const submitting = ref(false)
 const list = ref<AdminUser[]>([])
 const tenantOptions = ref<{ id: number; name: string }[]>([])
 const userTypeFilter = ref('')
@@ -51,14 +55,35 @@ async function loadTenants() {
 async function load() {
   loading.value = true
   try {
-    const res = await getUsers({ userType: userTypeFilter.value || undefined })
+    const res = await getUsers({
+      userType: userTypeFilter.value || undefined,
+      page: page.value,
+      size: size.value,
+    })
     list.value = res.records
+    total.value = res.total
   } catch {
     list.value = []
-    ElMessage.error('加载用户列表失败')
+    total.value = 0
   } finally {
     loading.value = false
   }
+}
+
+function onFilterChange() {
+  resetPage()
+  load()
+}
+
+function onPageChange(p: number) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(s: number) {
+  size.value = s
+  resetPage()
+  load()
 }
 
 function clearFieldErrors() {
@@ -120,15 +145,19 @@ async function handleSubmit() {
     ...(form.value.password ? { password: form.value.password } : {}),
   }
   if (editingId.value) {
+    submitting.value = true
     try {
       await updateUser(editingId.value, payload)
       ElMessage.success('已保存')
       await load()
+      dialogVisible.value = false
     } catch {
       return
+    } finally {
+      submitting.value = false
     }
-    dialogVisible.value = false
   } else {
+    submitting.value = true
     try {
       await createUser(payload)
       ElMessage.success('用户已创建')
@@ -136,6 +165,8 @@ async function handleSubmit() {
       dialogVisible.value = false
     } catch {
       return
+    } finally {
+      submitting.value = false
     }
   }
 }
@@ -165,14 +196,15 @@ onMounted(() => {
     </div>
     <div class="toolbar">
       <el-button type="primary" @click="openCreate">新建用户</el-button>
-      <el-select v-model="userTypeFilter" placeholder="全部类型" clearable style="width: 120px" @change="load">
+      <el-select v-model="userTypeFilter" placeholder="全部类型" clearable style="width: 120px" @change="onFilterChange">
         <el-option label="平台" value="PLATFORM" />
         <el-option label="企业" value="ENTERPRISE" />
         <el-option label="参会" value="ATTENDEE" />
       </el-select>
       <el-button @click="load">刷新</el-button>
     </div>
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-empty v-if="!loading && !list.length" description="暂无用户" />
+    <el-table v-else v-loading="loading" :data="list" border stripe>
       <el-table-column prop="email" label="邮箱" min-width="150" show-overflow-tooltip>
         <template #default="{ row }">{{ row.email || row.username }}</template>
       </el-table-column>
@@ -198,6 +230,7 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
+    <ListPagination :total="total" :page="page" :size="size" @change="onPageChange" @size-change="onSizeChange" />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑用户' : '新建用户'" width="480px">
       <el-form label-width="80px">
@@ -234,7 +267,7 @@ onMounted(() => {
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">{{ editingId ? '保存' : '创建' }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ editingId ? '保存' : '创建' }}</el-button>
       </template>
     </el-dialog>
   </div>

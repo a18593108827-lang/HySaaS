@@ -27,7 +27,7 @@ onMounted(async () => {
   try {
     rooms.value = await getHotelRooms(eventId)
   } catch {
-    ElMessage.error('加载房型失败')
+    rooms.value = []
   } finally {
     loading.value = false
   }

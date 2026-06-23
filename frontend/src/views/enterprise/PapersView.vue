@@ -2,11 +2,15 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { assignReviewer, finalizePaper, getMembers, getPapers } from '@/api/enterprise'
+import ListPagination from '@/components/ListPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import type { EnterpriseMember, PaperSubmission } from '@/types'
 
+const { page, size, total, resetPage } = usePagination()
 const loading = ref(false)
 const list = ref<PaperSubmission[]>([])
 const assignDialog = ref(false)
+const assignSubmitting = ref(false)
 const expertLoading = ref(false)
 const currentPaper = ref<PaperSubmission | null>(null)
 const expertId = ref<number>()
@@ -30,7 +34,6 @@ async function loadExperts() {
     experts.value = res.records.filter((m) => m.status === 'ENABLED')
   } catch {
     experts.value = []
-    ElMessage.error('加载专家列表失败')
   } finally {
     expertLoading.value = false
   }
@@ -39,14 +42,26 @@ async function loadExperts() {
 async function load() {
   loading.value = true
   try {
-    const res = await getPapers()
+    const res = await getPapers({ page: page.value, size: size.value })
     list.value = res.records
+    total.value = res.total
   } catch {
     list.value = []
-    ElMessage.error('加载稿件列表失败')
+    total.value = 0
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(p: number) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(s: number) {
+  size.value = s
+  resetPage()
+  load()
 }
 
 async function openAssign(row: PaperSubmission) {
@@ -59,6 +74,7 @@ async function openAssign(row: PaperSubmission) {
 async function handleAssign() {
   if (!currentPaper.value) return
   if (!expertId.value) return ElMessage.warning('请选择专家')
+  assignSubmitting.value = true
   try {
     await assignReviewer(currentPaper.value.id, expertId.value)
     currentPaper.value.status = 'UNDER_REVIEW'
@@ -66,6 +82,8 @@ async function handleAssign() {
     assignDialog.value = false
   } catch {
     return
+  } finally {
+    assignSubmitting.value = false
   }
 }
 
@@ -90,7 +108,8 @@ onMounted(load)
       <h1>稿件管理</h1>
       <p>分配专家、终审录用/拒稿/需修改</p>
     </div>
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-empty v-if="!loading && !list.length" description="暂无稿件" />
+    <el-table v-else v-loading="loading" :data="list" border stripe>
       <el-table-column prop="title" label="标题" min-width="200" />
       <el-table-column prop="author" label="作者" width="100" />
       <el-table-column prop="status" label="状态" width="100">
@@ -109,6 +128,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <ListPagination :total="total" :page="page" :size="size" @change="onPageChange" @size-change="onSizeChange" />
 
     <el-dialog v-model="assignDialog" title="分配评审专家" width="400px">
       <el-select v-model="expertId" placeholder="选择专家" :loading="expertLoading" style="width: 100%">
@@ -122,7 +142,7 @@ onMounted(load)
       </p>
       <template #footer>
         <el-button @click="assignDialog = false">取消</el-button>
-        <el-button type="primary" :disabled="!experts.length" @click="handleAssign">确认分配</el-button>
+        <el-button type="primary" :loading="assignSubmitting" :disabled="!experts.length" @click="handleAssign">确认分配</el-button>
       </template>
     </el-dialog>
   </div>

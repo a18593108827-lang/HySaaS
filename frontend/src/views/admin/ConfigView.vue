@@ -29,7 +29,6 @@ async function load() {
     const data = await getGlobalConfig()
     if (data) Object.assign(form.value, data)
   } catch {
-    ElMessage.error('加载配置失败')
   } finally {
     loading.value = false
   }
@@ -42,7 +41,6 @@ async function loadLogs() {
     logs.value = res.records
   } catch {
     logs.value = []
-    ElMessage.error('加载发信记录失败')
   } finally {
     logLoading.value = false
   }

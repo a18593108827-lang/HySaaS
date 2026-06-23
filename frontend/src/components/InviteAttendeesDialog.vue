@@ -33,7 +33,6 @@ async function loadAttendees() {
     attendees.value = res.records
   } catch {
     attendees.value = []
-    ElMessage.error('加载参会人失败')
   } finally {
     searchLoading.value = false
   }

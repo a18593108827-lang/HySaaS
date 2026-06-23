@@ -51,7 +51,7 @@ export function createHotelBooking(eventId: number | string, data: Record<string
   return request.post<unknown, PayOrder>(`/portal/hotels/${eventId}/book`, data)
 }
 
-export function getMyOrders(params?: { page?: number }) {
+export function getMyOrders(params?: { page?: number; size?: number }) {
   return request.get<unknown, PageResult<PayOrder>>('/portal/orders', { params })
 }
 

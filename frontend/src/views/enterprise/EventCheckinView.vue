@@ -43,7 +43,7 @@ async function load() {
     totalCount.value = res.total ?? 0
     list.value = res.records ?? []
   } catch {
-    ElMessage.error('加载签到数据失败')
+    list.value = []
   } finally {
     loading.value = false
   }
@@ -56,7 +56,6 @@ async function loadPending() {
     pending.value = res.records.filter((r) => r.userId && !checkedUserIds.value.has(r.userId))
   } catch {
     pending.value = []
-    ElMessage.error('加载待签到名单失败')
   } finally {
     pendingLoading.value = false
   }

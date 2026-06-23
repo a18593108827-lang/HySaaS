@@ -2,9 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { applyInvoice, createPayOrder, getMyOrders, mockPay } from '@/api/portal'
+import ListPagination from '@/components/ListPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import { isMobilePayChannel, launchPay } from '@/utils/pay'
+import { invoiceStatusMap, payBizTypeMap, payStatusMap } from '@/utils/labels'
 import type { PayOrder } from '@/types'
 
+const { page, size, total, resetPage } = usePagination()
 const loading = ref(false)
 const list = ref<PayOrder[]>([])
 const dialogVisible = ref(false)
@@ -12,34 +16,29 @@ const submitting = ref(false)
 const currentOrder = ref<PayOrder | null>(null)
 const form = ref({ title: '', taxNo: '', email: '' })
 
-const bizTypeMap: Record<string, string> = {
-  REGISTRATION: '报名费',
-  HOTEL: '酒店预订',
-}
-
-const statusMap: Record<string, { label: string; type: '' | 'success' | 'warning' | 'info' }> = {
-  PENDING: { label: '待支付', type: 'warning' },
-  PAID: { label: '已支付', type: 'success' },
-  CLOSED: { label: '已关闭', type: 'info' },
-  CANCELLED: { label: '已取消', type: 'info' },
-}
-
-const invoiceStatusMap: Record<string, string> = {
-  NONE: '未申请',
-  APPLYING: '开票中',
-  ISSUED: '已开票',
-}
-
 async function load() {
   loading.value = true
   try {
-    const res = await getMyOrders()
+    const res = await getMyOrders({ page: page.value, size: size.value })
     list.value = res.records
+    total.value = res.total
   } catch {
-    ElMessage.error('加载订单失败')
+    list.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(p: number) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(s: number) {
+  size.value = s
+  resetPage()
+  load()
 }
 
 async function handlePay(row: PayOrder) {
@@ -99,15 +98,16 @@ onMounted(load)
     <div class="toolbar">
       <el-button @click="load">刷新</el-button>
     </div>
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-empty v-if="!loading && !list.length" description="暂无订单" />
+    <el-table v-else v-loading="loading" :data="list" border stripe>
       <el-table-column prop="orderNo" label="订单号" width="160" />
       <el-table-column prop="bizType" label="类型" width="100">
-        <template #default="{ row }">{{ bizTypeMap[row.bizType] || row.bizType }}</template>
+        <template #default="{ row }">{{ payBizTypeMap[row.bizType] || row.bizType }}</template>
       </el-table-column>
       <el-table-column prop="amount" label="金额(元)" width="100" align="right" />
       <el-table-column prop="status" label="支付状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="statusMap[row.status]?.type">{{ statusMap[row.status]?.label || row.status }}</el-tag>
+          <el-tag :type="payStatusMap[row.status]?.type">{{ payStatusMap[row.status]?.label || row.status }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="发票" width="90">
@@ -131,6 +131,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <ListPagination :total="total" :page="page" :size="size" @change="onPageChange" @size-change="onSizeChange" />
 
     <el-dialog v-model="dialogVisible" title="申请发票" width="480px">
       <p v-if="currentOrder" class="order-hint">

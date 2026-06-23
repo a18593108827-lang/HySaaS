@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { getDashboardStats } from '@/api/enterprise'
 import { ENTERPRISE_NAV_ROLES } from '@/constants/enterpriseRoles'
 import { useAuthStore } from '@/stores/auth'
@@ -14,7 +13,6 @@ onMounted(async () => {
   try {
     stats.value = await getDashboardStats()
   } catch {
-    ElMessage.error('加载统计数据失败')
   } finally {
     loading.value = false
   }

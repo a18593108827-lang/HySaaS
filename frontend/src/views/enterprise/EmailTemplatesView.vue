@@ -2,6 +2,8 @@
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getEmailTemplates, updateEmailTemplate, getEmailLogs, getEvents } from '@/api/enterprise'
+import ListPagination from '@/components/ListPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 
 interface Template {
   id: number
@@ -13,7 +15,9 @@ interface Template {
 }
 
 const loading = ref(false)
+const saving = ref(false)
 const logLoading = ref(false)
+const { page: logPage, size: logSize, total: logTotal, resetPage: resetLogPage } = usePagination(20)
 const activeTab = ref('templates')
 const list = ref<Template[]>([])
 const logs = ref<{ id: number; code: string; recipient: string; subject: string; status: string; errorMsg?: string; createdAt: string }[]>([])
@@ -37,7 +41,7 @@ const codeNames: Record<string, string> = {
 async function loadEvents() {
   try {
     const res = await getEvents({ page: 0, size: 100 })
-    events.value = res.records.map((e) => ({ id: e.id, title: e.title }))
+    events.value = res.records.map((e) => ({ id: Number(e.id), title: e.title }))
   } catch {
     events.value = []
   }
@@ -49,7 +53,6 @@ async function load() {
     list.value = await getEmailTemplates({ eventId: eventId.value })
   } catch {
     list.value = []
-    ElMessage.error('加载邮件模板失败')
   } finally {
     loading.value = false
   }
@@ -58,14 +61,26 @@ async function load() {
 async function loadLogs() {
   logLoading.value = true
   try {
-    const res = await getEmailLogs({ page: 0, size: 20 })
+    const res = await getEmailLogs({ page: logPage.value, size: logSize.value })
     logs.value = res.records
+    logTotal.value = res.total
   } catch {
     logs.value = []
-    ElMessage.error('加载发信记录失败')
+    logTotal.value = 0
   } finally {
     logLoading.value = false
   }
+}
+
+function onLogPageChange(p: number) {
+  logPage.value = p
+  loadLogs()
+}
+
+function onLogSizeChange(s: number) {
+  logSize.value = s
+  resetLogPage()
+  loadLogs()
 }
 
 function openEdit(row: Template) {
@@ -75,6 +90,7 @@ function openEdit(row: Template) {
 
 async function save() {
   if (!editing.value) return
+  saving.value = true
   try {
     await updateEmailTemplate(editing.value.id, {
       subject: editing.value.subject,
@@ -87,6 +103,8 @@ async function save() {
     editing.value = null
   } catch {
     return
+  } finally {
+    saving.value = false
   }
 }
 
@@ -113,8 +131,11 @@ onMounted(() => {
             <el-option v-for="e in events" :key="e.id" :label="e.title" :value="e.id" />
           </el-select>
         </div>
-        <el-table v-loading="loading" :data="list" border stripe>
-          <el-table-column prop="code" label="编码" width="160" />
+        <el-empty v-if="!loading && !list.length" description="暂无模板" />
+        <el-table v-else v-loading="loading" :data="list" border stripe>
+          <el-table-column prop="code" label="编码" width="160">
+            <template #default="{ row }">{{ codeNames[row.code] || row.code }}</template>
+          </el-table-column>
           <el-table-column prop="name" label="名称" width="110" />
           <el-table-column prop="subject" label="主题" width="140" show-overflow-tooltip />
           <el-table-column prop="content" label="正文" min-width="240" show-overflow-tooltip />
@@ -127,13 +148,17 @@ onMounted(() => {
       </el-tab-pane>
 
       <el-tab-pane label="发信记录" name="logs">
-        <el-table v-loading="logLoading" :data="logs" border stripe>
+        <el-empty v-if="!logLoading && !logs.length" description="暂无发信记录" />
+        <el-table v-else v-loading="logLoading" :data="logs" border stripe>
           <el-table-column prop="createdAt" label="时间" width="170" />
-          <el-table-column prop="code" label="编码" width="140" />
+          <el-table-column prop="code" label="编码" width="140">
+            <template #default="{ row }">{{ codeNames[row.code] || row.code }}</template>
+          </el-table-column>
           <el-table-column prop="recipient" label="收件人" min-width="160" />
           <el-table-column prop="status" label="状态" width="80" />
           <el-table-column prop="errorMsg" label="错误" min-width="180" show-overflow-tooltip />
         </el-table>
+        <ListPagination :total="logTotal" :page="logPage" :size="logSize" @change="onLogPageChange" @size-change="onLogSizeChange" />
       </el-tab-pane>
     </el-tabs>
 
@@ -148,7 +173,7 @@ onMounted(() => {
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="save">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="save">保存</el-button>
       </template>
     </el-dialog>
   </div>

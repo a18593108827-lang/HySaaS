@@ -7,11 +7,15 @@ import { createEvent, deleteEvent, getEvents, publishEvent, updateEvent } from '
 import { useEventStore } from '@/stores/event'
 import CheckinQrcodeDialog from '@/components/CheckinQrcodeDialog.vue'
 import InviteAttendeesDialog from '@/components/InviteAttendeesDialog.vue'
+import ListPagination from '@/components/ListPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import type { EventItem } from '@/types'
 
 const router = useRouter()
 const eventStore = useEventStore()
+const { page, size, total, resetPage } = usePagination()
 const loading = ref(false)
+const submitting = ref(false)
 const list = ref<EventItem[]>([])
 const dialogVisible = ref(false)
 const editingId = ref<number | string | null>(null)
@@ -52,13 +56,28 @@ const statusMap: Record<string, string> = {
 async function load() {
   loading.value = true
   try {
-    const res = await getEvents()
+    const res = await getEvents({ page: page.value, size: size.value })
     list.value = res.records
+    total.value = res.total
+    eventStore.setList(list.value)
   } catch {
-    ElMessage.error('加载活动列表失败')
+    list.value = []
+    total.value = 0
+    eventStore.setList([])
+  } finally {
+    loading.value = false
   }
-  eventStore.setList(list.value)
-  loading.value = false
+}
+
+function onPageChange(p: number) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(s: number) {
+  size.value = s
+  resetPage()
+  load()
 }
 
 function goRegistrations(row: EventItem) {
@@ -118,27 +137,26 @@ function validateEventDates() {
 async function handleSubmit() {
   if (!form.value.title) return ElMessage.warning('请填写活动名称')
   if (!validateEventDates()) return
-  if (editingId.value) {
-    try {
+  submitting.value = true
+  try {
+    if (editingId.value) {
       await updateEvent(editingId.value, form.value)
       ElMessage.success('已保存')
       const row = list.value.find((e) => e.id === editingId.value)
       if (row) Object.assign(row, form.value)
-    } catch {
-      return
-    }
-  } else {
-    try {
+    } else {
       await createEvent(form.value)
       ElMessage.success('活动已创建')
       await load()
-    } catch {
-      return
     }
+    dialogVisible.value = false
+    editingId.value = null
+    form.value = defaultForm()
+  } catch {
+    return
+  } finally {
+    submitting.value = false
   }
-  dialogVisible.value = false
-  editingId.value = null
-  form.value = defaultForm()
 }
 
 async function handleDelete(row: EventItem) {
@@ -186,7 +204,8 @@ onMounted(load)
       <el-button type="primary" @click="openCreate">新建活动</el-button>
       <el-button @click="load">刷新</el-button>
     </div>
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-empty v-if="!loading && !list.length" description="暂无活动" />
+    <el-table v-else v-loading="loading" :data="list" border stripe>
       <el-table-column prop="title" label="活动名称" min-width="120" show-overflow-tooltip />
       <el-table-column prop="location" label="地点" width="90" />
       <el-table-column label="时间" width="190">
@@ -228,6 +247,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <ListPagination :total="total" :page="page" :size="size" @change="onPageChange" @size-change="onSizeChange" />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑活动' : '新建活动'" width="480px">
       <el-form label-width="80px">
@@ -256,7 +276,7 @@ onMounted(load)
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">{{ editingId ? '保存' : '创建' }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ editingId ? '保存' : '创建' }}</el-button>
       </template>
     </el-dialog>
 

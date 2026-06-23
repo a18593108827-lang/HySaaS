@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPortalEvents } from '@/api/portal'
-import { ElMessage } from 'element-plus'
 import type { EventItem } from '@/types'
 
 const router = useRouter()
@@ -26,7 +25,7 @@ async function load() {
   try {
     list.value = await getPortalEvents()
   } catch {
-    ElMessage.error('加载活动列表失败')
+    list.value = []
   } finally {
     loading.value = false
   }

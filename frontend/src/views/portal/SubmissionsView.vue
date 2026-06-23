@@ -97,7 +97,7 @@ async function load() {
   try {
     list.value = await getMySubmissions(activeTab.value)
   } catch {
-    ElMessage.error('加载投稿列表失败')
+    list.value = []
   } finally {
     loading.value = false
   }

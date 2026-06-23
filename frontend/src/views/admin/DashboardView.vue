@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { getAdminDashboardStats } from '@/api/admin'
 
 const loading = ref(false)
@@ -11,7 +10,6 @@ onMounted(async () => {
   try {
     stats.value = await getAdminDashboardStats()
   } catch {
-    ElMessage.error('加载统计数据失败')
   } finally {
     loading.value = false
   }

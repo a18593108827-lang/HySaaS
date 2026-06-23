@@ -3,10 +3,15 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { auditTenant, createTenant, deleteTenant, getTenants, updateTenant } from '@/api/admin'
+import ListPagination from '@/components/ListPagination.vue'
+import { usePagination } from '@/composables/usePagination'
+import { validEmail } from '@/utils/account'
 import type { Tenant } from '@/types'
 
 const router = useRouter()
+const { page, size, total, resetPage } = usePagination()
 const loading = ref(false)
+const submitting = ref(false)
 const list = ref<Tenant[]>([])
 const statusFilter = ref('')
 const dialogVisible = ref(false)
@@ -30,14 +35,35 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'warning
 async function load() {
   loading.value = true
   try {
-    const res = await getTenants({ status: statusFilter.value || undefined })
+    const res = await getTenants({
+      status: statusFilter.value || undefined,
+      page: page.value,
+      size: size.value,
+    })
     list.value = res.records
+    total.value = res.total
   } catch {
     list.value = []
-    ElMessage.error('加载租户列表失败')
+    total.value = 0
   } finally {
     loading.value = false
   }
+}
+
+function onFilterChange() {
+  resetPage()
+  load()
+}
+
+function onPageChange(p: number) {
+  page.value = p
+  load()
+}
+
+function onSizeChange(s: number) {
+  size.value = s
+  resetPage()
+  load()
 }
 
 function openCreate() {
@@ -67,29 +93,28 @@ async function handleSubmit() {
   if (!form.value.contactEmail?.trim()) {
     return ElMessage.warning('请填写联系邮箱')
   }
-  if (!emailRe.test(form.value.contactEmail.trim())) {
+  if (!validEmail(form.value.contactEmail)) {
     return ElMessage.warning('联系邮箱格式不正确')
   }
   const payload = { ...form.value, contactEmail: form.value.contactEmail.trim() }
-  if (editingId.value) {
-    try {
+  submitting.value = true
+  try {
+    if (editingId.value) {
       await updateTenant(editingId.value, payload)
       ElMessage.success('已保存')
       const row = list.value.find((e) => e.id === editingId.value)
       if (row) Object.assign(row, payload)
       dialogVisible.value = false
-    } catch {
-      return
-    }
-  } else {
-    try {
+    } else {
       await createTenant(payload)
       ElMessage.success('租户已创建')
       await load()
       dialogVisible.value = false
-    } catch {
-      return
     }
+  } catch {
+    return
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -128,14 +153,15 @@ onMounted(load)
     </div>
     <div class="toolbar">
       <el-button type="primary" @click="openCreate">新建租户</el-button>
-      <el-select v-model="statusFilter" placeholder="全部状态" clearable style="width: 140px" @change="load">
+      <el-select v-model="statusFilter" placeholder="全部状态" clearable style="width: 140px" @change="onFilterChange">
         <el-option label="待审核" value="PENDING" />
         <el-option label="已通过" value="APPROVED" />
         <el-option label="已拒绝" value="REJECTED" />
       </el-select>
       <el-button @click="load">刷新</el-button>
     </div>
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-empty v-if="!loading && !list.length" description="暂无租户" />
+    <el-table v-else v-loading="loading" :data="list" border stripe>
       <el-table-column prop="name" label="企业名称" min-width="120" show-overflow-tooltip />
       <el-table-column prop="contactName" label="联系人" width="90" />
       <el-table-column prop="contactPhone" label="联系电话" width="120" />
@@ -169,6 +195,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <ListPagination :total="total" :page="page" :size="size" @change="onPageChange" @size-change="onSizeChange" />
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑租户' : '新建租户'" width="520px">
       <el-form label-width="90px">
@@ -199,7 +226,7 @@ onMounted(load)
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">{{ editingId ? '保存' : '创建' }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ editingId ? '保存' : '创建' }}</el-button>
       </template>
     </el-dialog>
   </div>

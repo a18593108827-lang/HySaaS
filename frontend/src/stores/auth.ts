@@ -9,8 +9,14 @@ const HOME_MAP: Record<UserType, string> = {
   ATTENDEE: '/portal/events',
 }
 
+const TOKEN_KEY = 'token'
+
+function readStoredToken() {
+  return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || ''
+}
+
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref(localStorage.getItem('token') || '')
+  const token = ref(readStoredToken())
   const user = ref<UserInfo | null>(null)
   const loading = ref(false)
 
@@ -18,22 +24,29 @@ export const useAuthStore = defineStore('auth', () => {
   const userType = computed(() => user.value?.userType)
   const homePath = computed(() => (user.value ? HOME_MAP[user.value.userType] : '/login'))
 
-  function setToken(t: string) {
+  function setToken(t: string, remember = true) {
     token.value = t
-    localStorage.setItem('token', t)
+    if (remember) {
+      localStorage.setItem(TOKEN_KEY, t)
+      sessionStorage.removeItem(TOKEN_KEY)
+    } else {
+      sessionStorage.setItem(TOKEN_KEY, t)
+      localStorage.removeItem(TOKEN_KEY)
+    }
   }
 
   function clearAuth() {
     token.value = ''
     user.value = null
-    localStorage.removeItem('token')
+    localStorage.removeItem(TOKEN_KEY)
+    sessionStorage.removeItem(TOKEN_KEY)
   }
 
-  async function login(params: LoginParams) {
+  async function login(params: LoginParams & { remember?: boolean }) {
     loading.value = true
     try {
       const res = await loginApi(params)
-      setToken(res.token)
+      setToken(res.token, params.remember !== false)
       await fetchUser()
       return res
     } finally {

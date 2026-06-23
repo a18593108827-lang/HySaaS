@@ -40,7 +40,7 @@ async function onSubmit() {
   if (accountError.value || passwordError.value) return
 
   try {
-    await auth.login({ username: account.value.trim(), password: password.value })
+    await auth.login({ username: account.value.trim(), password: password.value, remember: remember.value })
     const redirect = (route.query.redirect as string) || auth.homePath
     router.push(redirect)
   } catch (e: unknown) {
