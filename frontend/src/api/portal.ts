@@ -39,8 +39,8 @@ export function submitPaper(id: number | string, eventId?: number | string) {
   return request.post(`/portal/submissions/${id}/submit`, eventId != null ? { eventId } : undefined)
 }
 
-export function checkin(eventId: number | string, token?: string) {
-  return request.post(`/portal/checkin/${eventId}`, token ? { token } : undefined)
+export function checkin(eventId: number | string, token: string) {
+  return request.post(`/portal/checkin/${eventId}`, { token })
 }
 
 export function getHotelRooms(eventId: number | string) {

@@ -1,0 +1,2 @@
+ALTER TABLE evt_checkin
+    ADD COLUMN source VARCHAR(16) NOT NULL DEFAULT 'SCAN' AFTER user_id;

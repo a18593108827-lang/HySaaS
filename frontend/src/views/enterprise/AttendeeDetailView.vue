@@ -28,25 +28,13 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'danger'
   DISABLED: { label: '禁用', type: 'danger' },
 }
 
-const demoMap: Record<string, EnterpriseAttendee> = {
-  '101': { id: 101, username: 'user@test.com', email: 'user@test.com', phone: '13800000003', nickname: '参会用户', status: 'ENABLED', createdAt: '2026-06-01' },
-  '102': { id: 102, username: 'wang@example.com', email: 'wang@example.com', phone: '13800001111', nickname: '王明', status: 'ENABLED', createdAt: '2026-06-03' },
-}
-
 async function load() {
   loading.value = true
   try {
     attendee.value = await getAttendee(attendeeId.value)
   } catch {
-    attendee.value = demoMap[attendeeId.value] ?? {
-      id: attendeeId.value as unknown as number,
-      username: `attendee${attendeeId.value}@test.com`,
-      email: `attendee${attendeeId.value}@test.com`,
-      phone: '',
-      nickname: '演示参会人',
-      status: 'ENABLED',
-      createdAt: '—',
-    }
+    attendee.value = null
+    ElMessage.error('加载参会账号详情失败')
   } finally {
     loading.value = false
   }

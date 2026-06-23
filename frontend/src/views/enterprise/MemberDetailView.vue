@@ -38,27 +38,13 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'danger'
   DISABLED: { label: '禁用', type: 'danger' },
 }
 
-const demoMap: Record<string, EnterpriseMember> = {
-  '1': { id: 1, username: 'ent@test.com', email: 'ent@test.com', phone: '13800000002', nickname: '企业管理员', roles: ['ADMIN'], status: 'ENABLED', createdAt: '2026-05-29' },
-  '2': { id: 2, username: 'staff@test.com', email: 'staff@test.com', phone: '13800001112', nickname: '会务小李', roles: ['EVENT_STAFF'], status: 'ENABLED', createdAt: '2026-06-01' },
-  '3': { id: 3, username: 'expert@test.com', email: 'expert@test.com', phone: '13800001113', nickname: '评审专家王', roles: ['EXPERT'], status: 'ENABLED', createdAt: '2026-06-02' },
-}
-
 async function load() {
   loading.value = true
   try {
     member.value = await getMember(memberId.value)
   } catch {
-    member.value = demoMap[memberId.value] ?? {
-      id: memberId.value as unknown as number,
-      username: `member${memberId.value}@test.com`,
-      email: `member${memberId.value}@test.com`,
-      phone: '',
-      nickname: '演示成员',
-      roles: ['EVENT_STAFF'],
-      status: 'ENABLED',
-      createdAt: '—',
-    }
+    member.value = null
+    ElMessage.error('加载成员详情失败')
   } finally {
     loading.value = false
   }

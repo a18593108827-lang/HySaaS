@@ -23,39 +23,41 @@ const error = ref('')
 const event = ref<EventItem | null>(null)
 
 async function doCheckin() {
-  if (loading.value || done.value) return
+  if (loading.value || done.value || !scanToken.value) return
   loading.value = true
   error.value = ''
   try {
-    await checkin(eventId, scanToken.value || undefined)
+    await checkin(eventId, scanToken.value)
     done.value = true
     ElMessage.success('签到成功')
-  } catch {
-    error.value = '签到失败，请确认已报名并通过审核'
+  } catch (e: unknown) {
+    const msg = (e as { message?: string })?.message
+    error.value = msg || '签到失败，请确认已报名并通过审核'
   } finally {
     loading.value = false
   }
 }
 
 onMounted(async () => {
+  if (!fromScan.value) {
+    eventLoading.value = false
+    error.value = '请扫描会场签到二维码完成签到'
+    return
+  }
+
   try {
-    event.value = await getPortalEvent(eventId, scanToken.value || undefined)
-  } catch {
-    if (route.path.startsWith('/portal/')) {
-      ElMessage.error('加载活动信息失败')
-      router.replace('/portal/events')
-      return
-    }
-    error.value = '活动信息加载失败'
+    event.value = await getPortalEvent(eventId, scanToken.value)
+  } catch (e: unknown) {
+    const msg = (e as { message?: string })?.message
+    error.value = msg || '活动信息加载失败'
+    eventLoading.value = false
+    return
   } finally {
     eventLoading.value = false
   }
 
   if (!auth.token || !auth.user) {
-    if (fromScan.value) {
-      return router.replace({ path: '/login', query: { redirect: route.fullPath } })
-    }
-    return
+    return router.replace({ path: '/login', query: { redirect: route.fullPath } })
   }
 
   if (auth.userType !== 'ATTENDEE') {
@@ -63,9 +65,7 @@ onMounted(async () => {
     return
   }
 
-  if (fromScan.value) {
-    await doCheckin()
-  }
+  await doCheckin()
 })
 
 function goLogin() {
@@ -83,15 +83,7 @@ function goLogin() {
     <el-result v-if="done" icon="success" title="签到成功" sub-title="欢迎参会，请入场" />
     <div v-else-if="error" class="checkin-card error">
       <p>{{ error }}</p>
-      <el-button v-if="!auth.user" type="primary" @click="goLogin">登录参会账号</el-button>
-    </div>
-    <div v-else-if="!auth.user" class="checkin-card">
-      <p>登录后可签到</p>
-      <el-button type="primary" @click="goLogin">登录签到</el-button>
-    </div>
-    <div v-else class="checkin-card">
-      <p>到达会场后，点击下方按钮完成签到</p>
-      <el-button type="primary" :loading="loading" @click="doCheckin">确认签到</el-button>
+      <el-button v-if="fromScan && !auth.user" type="primary" @click="goLogin">登录参会账号</el-button>
     </div>
   </div>
 
@@ -115,17 +107,17 @@ function goLogin() {
 
       <div v-else-if="error" class="checkin-card error">
         <p>{{ error }}</p>
-        <el-button v-if="!auth.user" type="primary" @click="goLogin">登录参会账号</el-button>
+        <el-button v-if="fromScan && !auth.user" type="primary" @click="goLogin">登录参会账号</el-button>
       </div>
 
-      <div v-else-if="!auth.user" class="checkin-card">
-        <p>{{ fromScan ? '请先登录参会账号以完成签到' : '登录后可签到' }}</p>
+      <div v-else-if="fromScan && !auth.user" class="checkin-card">
+        <p>请先登录参会账号以完成签到</p>
         <el-button type="primary" size="large" @click="goLogin">登录签到</el-button>
       </div>
 
-      <div v-else class="checkin-card">
-        <p>{{ fromScan ? '正在处理签到…' : '到达会场后，点击下方按钮完成签到' }}</p>
-        <el-button type="primary" size="large" :loading="loading" @click="doCheckin">确认签到</el-button>
+      <div v-else-if="fromScan" class="checkin-card">
+        <p>正在处理签到…</p>
+        <el-button type="primary" size="large" :loading="loading" disabled>签到中</el-button>
       </div>
     </main>
   </div>
@@ -211,5 +203,6 @@ function goLogin() {
 
 .checkin-card.error p {
   color: var(--error);
+  margin-bottom: 0;
 }
 </style>

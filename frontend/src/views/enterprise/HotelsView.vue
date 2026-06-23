@@ -27,27 +27,13 @@ const roomDialogVisible = ref(false)
 const editingRoomId = ref<number | null>(null)
 const roomForm = ref({ name: '', price: 0, quota: 0 })
 
-const demoList: HotelInfo[] = [
-  { id: 1, name: '上海国际会议中心酒店', address: '浦东新区世博大道', contactPhone: '021-88888888' },
-  { id: 2, name: '世博洲际酒店', address: '浦东新区国展路', contactPhone: '021-66666666' },
-]
-
-const demoRoomMap: Record<number, HotelRoomType[]> = {
-  1: [
-    { id: 1, hotelId: 1, name: '标准大床房', price: 680, quota: 50, used: 12 },
-    { id: 2, hotelId: 1, name: '豪华双床房', price: 880, quota: 30, used: 5 },
-  ],
-  2: [
-    { id: 3, hotelId: 2, name: '商务标间', price: 520, quota: 40, used: 8 },
-  ],
-}
-
 async function load() {
   loading.value = true
   try {
     list.value = await getHotels()
   } catch {
-    list.value = [...demoList]
+    list.value = []
+    ElMessage.error('加载酒店列表失败')
   } finally {
     loading.value = false
   }
@@ -96,7 +82,6 @@ async function handleDelete(row: HotelInfo) {
     await deleteHotel(row.id)
     ElMessage.success('已删除')
     list.value = list.value.filter((h) => h.id !== row.id)
-    delete demoRoomMap[row.id]
   } catch {
     return
   }
@@ -114,7 +99,8 @@ async function loadRooms() {
   try {
     roomList.value = await getHotelRoomTypes(activeHotel.value.id)
   } catch {
-    roomList.value = [...(demoRoomMap[activeHotel.value.id] ?? [])]
+    roomList.value = []
+    ElMessage.error('加载房型列表失败')
   } finally {
     roomLoading.value = false
   }
@@ -169,9 +155,6 @@ async function handleRoomDelete(row: HotelRoomType) {
     await deleteHotelRoomType(hotelId, row.id)
     ElMessage.success('已删除')
     roomList.value = roomList.value.filter((r) => r.id !== row.id)
-    if (demoRoomMap[hotelId]) {
-      demoRoomMap[hotelId] = demoRoomMap[hotelId].filter((r) => r.id !== row.id)
-    }
   } catch {
     return
   }

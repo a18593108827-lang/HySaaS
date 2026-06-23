@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { getInvoices } from '@/api/enterprise'
 
 interface Invoice {
@@ -19,9 +20,8 @@ async function load() {
   try {
     list.value = await getInvoices()
   } catch {
-    list.value = [
-      { id: 1, orderNo: 'P20260601001', title: '华东医学会', amount: 500, status: 'ISSUED', createdAt: '2026-06-01' },
-    ]
+    list.value = []
+    ElMessage.error('加载发票列表失败')
   } finally {
     loading.value = false
   }

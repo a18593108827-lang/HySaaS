@@ -23,18 +23,14 @@ const statusLabel: Record<string, string> = {
   RESUBMITTED: '已重投',
 }
 
-const demoExperts: EnterpriseMember[] = [
-  { id: 3, username: 'expert@test.com', nickname: '评审专家王', roles: ['EXPERT'], status: 'ENABLED', createdAt: '2026-06-02' },
-  { id: 4, username: 'liu@test.com', nickname: '刘研究员', roles: ['EXPERT'], status: 'ENABLED', createdAt: '2026-06-03' },
-]
-
 async function loadExperts() {
   expertLoading.value = true
   try {
     const res = await getMembers({ role: 'EXPERT' })
     experts.value = res.records.filter((m) => m.status === 'ENABLED')
   } catch {
-    experts.value = [...demoExperts]
+    experts.value = []
+    ElMessage.error('加载专家列表失败')
   } finally {
     expertLoading.value = false
   }
@@ -46,10 +42,8 @@ async function load() {
     const res = await getPapers()
     list.value = res.records
   } catch {
-    list.value = [
-      { id: 1, title: '深度学习在影像诊断中的应用', author: '张三', status: 'SUBMITTED', version: 1, submittedAt: '2026-06-01' },
-      { id: 2, title: '新型材料力学性能研究', author: '李四', status: 'UNDER_REVIEW', version: 1, submittedAt: '2026-05-28' },
-    ]
+    list.value = []
+    ElMessage.error('加载稿件列表失败')
   } finally {
     loading.value = false
   }

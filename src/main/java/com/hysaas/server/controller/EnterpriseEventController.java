@@ -88,6 +88,12 @@ public class EnterpriseEventController {
         return R.ok(checkinService.generateQrcode(id));
     }
 
+    @PostMapping("/{eventId}/checkin/registrations/{registrationId}")
+    public R<Void> proxyCheckin(@PathVariable Long eventId, @PathVariable Long registrationId) {
+        checkinService.enterpriseProxyCheckin(eventId, registrationId);
+        return R.ok();
+    }
+
     @PostMapping("/{id}/invites")
     public R<EventInviteResultVO> invites(@PathVariable Long id, @RequestBody EventInviteRequest request) {
         return R.ok(registrationService.invite(id, request));

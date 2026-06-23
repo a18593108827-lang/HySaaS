@@ -34,27 +34,13 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'danger'
   DISABLED: { label: '禁用', type: 'danger' },
 }
 
-const demoMap: Record<string, AdminUser> = {
-  '1': { id: 1, username: 'admin@test.com', email: 'admin@test.com', phone: '13800000001', nickname: '平台管理员', userType: 'PLATFORM', status: 'ENABLED', createdAt: '2026-01-01' },
-  '2': { id: 2, username: 'ent@test.com', email: 'ent@test.com', phone: '13800000002', nickname: '企业管理员', userType: 'ENTERPRISE', tenantId: 2, tenantName: '深圳创新峰会', status: 'ENABLED', createdAt: '2026-05-29' },
-  '3': { id: 3, username: 'user@test.com', email: 'user@test.com', phone: '13800000003', nickname: '参会用户', userType: 'ATTENDEE', status: 'ENABLED', createdAt: '2026-06-01' },
-}
-
 async function load() {
   loading.value = true
   try {
     user.value = await getUser(userId.value)
   } catch {
-    user.value = demoMap[userId.value] ?? {
-      id: userId.value as unknown as number,
-      username: `user${userId.value}@test.com`,
-      email: `user${userId.value}@test.com`,
-      phone: '',
-      nickname: '演示用户',
-      userType: 'ATTENDEE',
-      status: 'ENABLED',
-      createdAt: '—',
-    }
+    user.value = null
+    ElMessage.error('加载用户详情失败')
   } finally {
     loading.value = false
   }

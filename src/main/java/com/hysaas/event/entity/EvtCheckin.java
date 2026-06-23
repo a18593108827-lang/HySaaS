@@ -16,5 +16,6 @@ public class EvtCheckin {
     private Long tenantId;
     private Long eventId;
     private Long userId;
+    private String source;
     private LocalDateTime checkinAt;
 }

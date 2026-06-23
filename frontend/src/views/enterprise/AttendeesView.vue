@@ -28,18 +28,14 @@ const emailError = ref('')
 const phoneError = ref('')
 const passwordErrorMsg = ref('')
 
-const demoList: EnterpriseAttendee[] = [
-  { id: 101, username: 'user@test.com', email: 'user@test.com', phone: '13800000003', nickname: '参会用户', status: 'ENABLED', createdAt: '2026-06-01' },
-  { id: 102, username: 'wang@example.com', email: 'wang@example.com', phone: '13800001111', nickname: '王明', status: 'ENABLED', createdAt: '2026-06-03' },
-]
-
 async function load() {
   loading.value = true
   try {
     const res = await getAttendees()
     list.value = res.records
   } catch {
-    list.value = [...demoList]
+    list.value = []
+    ElMessage.error('加载参会账号失败')
   } finally {
     loading.value = false
   }

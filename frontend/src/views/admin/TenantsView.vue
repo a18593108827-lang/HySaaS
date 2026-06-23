@@ -27,20 +27,14 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'warning
   REJECTED: { label: '已拒绝', type: 'danger' },
 }
 
-const demoList: Tenant[] = [
-  { id: 1, name: '华东医学会', contactName: '张敏', contactPhone: '13800138001', contactEmail: 'zhang@example.com', address: '上海市黄浦区', status: 'PENDING', createdAt: '2026-06-01' },
-  { id: 2, name: '深圳创新峰会', contactName: '李强', contactPhone: '13900139002', contactEmail: 'li@example.com', status: 'APPROVED', createdAt: '2026-05-28' },
-]
-
-const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 async function load() {
   loading.value = true
   try {
     const res = await getTenants({ status: statusFilter.value || undefined })
     list.value = res.records
   } catch {
-    list.value = [...demoList]
+    list.value = []
+    ElMessage.error('加载租户列表失败')
   } finally {
     loading.value = false
   }

@@ -26,24 +26,15 @@ const statusMap: Record<string, { label: string; type: '' | 'success' | 'warning
   REJECTED: { label: '已拒绝', type: 'danger' },
 }
 
-const demoMap: Record<string, Tenant> = {
-  '1': { id: 1, name: '华东医学会', contactName: '张敏', contactPhone: '13800138001', contactEmail: 'zhang@example.com', address: '上海市黄浦区', remark: '医学类大型会议主办方', status: 'PENDING', createdAt: '2026-06-01' },
-  '2': { id: 2, name: '深圳创新峰会', contactName: '李强', contactPhone: '13900139002', contactEmail: 'li@example.com', status: 'APPROVED', createdAt: '2026-05-28', updatedAt: '2026-05-29' },
-}
+const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 async function load() {
   loading.value = true
   try {
     tenant.value = await getTenant(tenantId.value)
   } catch {
-    tenant.value = demoMap[tenantId.value] ?? {
-      id: tenantId.value,
-      name: `租户 #${tenantId.value}`,
-      contactName: '—',
-      contactPhone: '—',
-      status: 'PENDING',
-      createdAt: '—',
-    }
+    tenant.value = null
+    ElMessage.error('加载租户详情失败')
   } finally {
     loading.value = false
   }

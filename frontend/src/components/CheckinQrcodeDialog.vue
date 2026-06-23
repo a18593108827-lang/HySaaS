@@ -37,7 +37,7 @@ async function load() {
         storeCheckinToken(props.eventId, res.token)
       }
     } catch {
-      /* demo */
+      // 接口失败时使用本地 token 生成二维码
     }
     data.value = await buildCheckinQrcode(props.eventId, props.eventTitle, token)
   } catch {

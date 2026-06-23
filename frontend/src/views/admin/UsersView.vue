@@ -39,18 +39,12 @@ const emailError = ref('')
 const phoneError = ref('')
 const passwordErrorMsg = ref('')
 
-const demoList: AdminUser[] = [
-  { id: 1, username: 'admin@test.com', email: 'admin@test.com', phone: '13800000001', nickname: '平台管理员', userType: 'PLATFORM', status: 'ENABLED', createdAt: '2026-01-01' },
-  { id: 2, username: 'ent@test.com', email: 'ent@test.com', phone: '13800000002', nickname: '企业管理员', userType: 'ENTERPRISE', tenantId: 2, tenantName: '深圳创新峰会', status: 'ENABLED', createdAt: '2026-05-29' },
-  { id: 3, username: 'user@test.com', email: 'user@test.com', phone: '13800000003', nickname: '参会用户', userType: 'ATTENDEE', status: 'ENABLED', createdAt: '2026-06-01' },
-]
-
 async function loadTenants() {
   try {
     const res = await getTenants({ status: 'APPROVED' })
     tenantOptions.value = res.records.map((t) => ({ id: t.id, name: t.name }))
   } catch {
-    tenantOptions.value = [{ id: 2, name: '深圳创新峰会' }]
+    tenantOptions.value = []
   }
 }
 
@@ -60,9 +54,8 @@ async function load() {
     const res = await getUsers({ userType: userTypeFilter.value || undefined })
     list.value = res.records
   } catch {
-    list.value = userTypeFilter.value
-      ? demoList.filter((u) => u.userType === userTypeFilter.value)
-      : [...demoList]
+    list.value = []
+    ElMessage.error('加载用户列表失败')
   } finally {
     loading.value = false
   }

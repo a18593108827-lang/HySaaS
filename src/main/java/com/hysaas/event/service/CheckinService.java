@@ -32,6 +32,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CheckinService {
 
+    private static final String SOURCE_SCAN = "SCAN";
+    private static final String SOURCE_PROXY = "PROXY";
+
     private final EvtCheckinMapper evtCheckinMapper;
     private final EvtEventMapper evtEventMapper;
     private final EvtRegistrationMapper evtRegistrationMapper;
@@ -61,7 +64,9 @@ public class CheckinService {
         Map<Long, String> nameMap = loadRegistrationNames(eventId, checkins);
         List<CheckinRecordVO> records = checkins.stream().map(c -> {
             CheckinRecordVO vo = new CheckinRecordVO();
+            vo.setUserId(c.getUserId());
             vo.setName(nameMap.getOrDefault(c.getUserId(), "未知"));
+            vo.setSource(c.getSource());
             vo.setCheckinTime(formatTime(c.getCheckinAt()));
             return vo;
         }).toList();
@@ -76,23 +81,51 @@ public class CheckinService {
     public void portalCheckin(Long eventId, PortalCheckinRequest request) {
         SysUser user = portalContext.requireAttendee();
         EvtEvent event = requirePortalEvent(eventId);
-        if (StringUtils.hasText(request.getToken())) {
-            validateCheckinToken(event, request.getToken());
+        if (request == null || !StringUtils.hasText(request.getToken())) {
+            throw new BizException("请扫描会场签到二维码");
         }
+        validateCheckinToken(event, request.getToken());
         registrationService.requireApprovedRegistration(eventId, user.getId());
+        insertCheckinIfAbsent(event, user.getId(), SOURCE_SCAN, false);
+    }
+
+    @Transactional
+    public void enterpriseProxyCheckin(Long eventId, Long registrationId) {
+        EvtEvent event = requireEnterpriseEvent(eventId);
+        EvtRegistration registration = evtRegistrationMapper.selectById(registrationId);
+        if (registration == null) {
+            throw new BizException(404, "报名记录不存在");
+        }
+        if (!eventId.equals(registration.getEventId())) {
+            throw new BizException(404, "报名记录不存在");
+        }
+        if (!"APPROVED".equals(registration.getStatus())) {
+            throw new BizException("仅已通过报名可代签");
+        }
+        if (registration.getUserId() == null) {
+            throw new BizException("报名记录缺少参会账号");
+        }
+        insertCheckinIfAbsent(event, registration.getUserId(), SOURCE_PROXY, true);
+    }
+
+    private void insertCheckinIfAbsent(EvtEvent event, Long userId, String source, boolean failIfExists) {
         long exists = evtCheckinMapper.selectCount(new LambdaQueryWrapper<EvtCheckin>()
-                .eq(EvtCheckin::getEventId, eventId)
-                .eq(EvtCheckin::getUserId, user.getId()));
+                .eq(EvtCheckin::getEventId, event.getId())
+                .eq(EvtCheckin::getUserId, userId));
         if (exists > 0) {
+            if (failIfExists) {
+                throw new BizException("该参会人已签到");
+            }
             return;
         }
         EvtCheckin checkin = new EvtCheckin();
         checkin.setTenantId(event.getTenantId());
-        checkin.setEventId(eventId);
-        checkin.setUserId(user.getId());
+        checkin.setEventId(event.getId());
+        checkin.setUserId(userId);
+        checkin.setSource(source);
         checkin.setCheckinAt(LocalDateTime.now());
         evtCheckinMapper.insert(checkin);
-        pushCheckinStats(eventId);
+        pushCheckinStats(event.getId());
     }
 
     private void pushCheckinStats(Long eventId) {
@@ -116,7 +149,7 @@ public class CheckinService {
 
     private void validateCheckinToken(EvtEvent event, String token) {
         if (!StringUtils.hasText(event.getCheckinToken()) || !event.getCheckinToken().equals(token)) {
-            throw new BizException("签到码无效");
+            throw new BizException("签到码无效或已过期，请重新扫描会场二维码");
         }
     }
 
@@ -142,6 +175,6 @@ public class CheckinService {
         if (time == null) {
             return "";
         }
-        return time.format(DateTimeFormatter.ISO_LOCAL_DATE);
+        return time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
     }
 }

@@ -21,10 +21,6 @@ function canBookHotel(item: EventItem) {
   return item.myRegistrationStatus === 'APPROVED' && hotelMemberTypes.has(item.myMemberType || '')
 }
 
-function canCheckin(item: EventItem) {
-  return item.myRegistrationStatus === 'APPROVED'
-}
-
 async function load() {
   loading.value = true
   try {
@@ -61,9 +57,7 @@ onMounted(load)
           <el-tooltip v-if="item.hotelEnabled" :disabled="canBookHotel(item)" content="需报名审核通过，且为付费会员/理事会成员">
             <el-button :disabled="!canBookHotel(item)" @click="router.push(`/portal/hotels/${item.id}`)">订酒店</el-button>
           </el-tooltip>
-          <el-tooltip :disabled="canCheckin(item)" content="需报名审核通过">
-            <el-button :disabled="!canCheckin(item)" @click="router.push(`/portal/checkin/${item.id}`)">签到</el-button>
-          </el-tooltip>
+          <el-tag v-if="item.myRegistrationStatus === 'APPROVED'" type="info" size="small">请现场扫码签到</el-tag>
         </div>
       </el-card>
     </div>

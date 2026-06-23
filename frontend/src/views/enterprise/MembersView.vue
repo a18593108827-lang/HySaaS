@@ -39,21 +39,14 @@ const emailError = ref('')
 const phoneError = ref('')
 const passwordErrorMsg = ref('')
 
-const demoList: EnterpriseMember[] = [
-  { id: 1, username: 'ent@test.com', email: 'ent@test.com', phone: '13800000002', nickname: '企业管理员', roles: ['ADMIN'], status: 'ENABLED', createdAt: '2026-05-29' },
-  { id: 2, username: 'staff@test.com', email: 'staff@test.com', phone: '13800001112', nickname: '会务小李', roles: ['EVENT_STAFF'], status: 'ENABLED', createdAt: '2026-06-01' },
-  { id: 3, username: 'expert@test.com', email: 'expert@test.com', phone: '13800001113', nickname: '评审专家王', roles: ['EXPERT'], status: 'ENABLED', createdAt: '2026-06-02' },
-]
-
 async function load() {
   loading.value = true
   try {
     const res = await getMembers({ role: roleFilter.value || undefined })
     list.value = res.records
   } catch {
-    list.value = roleFilter.value
-      ? demoList.filter((m) => m.roles.includes(roleFilter.value))
-      : [...demoList]
+    list.value = []
+    ElMessage.error('加载成员列表失败')
   } finally {
     loading.value = false
   }

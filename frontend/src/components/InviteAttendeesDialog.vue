@@ -26,26 +26,14 @@ const inviting = ref(false)
 const linkLoading = ref(false)
 const linkData = ref<InviteLinkData | null>(null)
 
-const demoAttendees: EnterpriseAttendee[] = [
-  { id: 101, username: 'user@test.com', email: 'user@test.com', phone: '13800000003', nickname: '参会用户', status: 'ENABLED', createdAt: '2026-06-01' },
-  { id: 102, username: 'wang@example.com', email: 'wang@example.com', phone: '13800001111', nickname: '王明', status: 'ENABLED', createdAt: '2026-06-03' },
-  { id: 103, username: 'chen@example.com', email: 'chen@example.com', phone: '13900002222', nickname: '陈丽', status: 'ENABLED', createdAt: '2026-06-02' },
-  { id: 104, username: 'li@example.com', email: 'li@example.com', phone: '13900003333', nickname: '李强', status: 'DISABLED', createdAt: '2026-06-04' },
-]
-
-function filterDemo(nickname: string) {
-  const q = nickname.trim().toLowerCase()
-  if (!q) return [...demoAttendees]
-  return demoAttendees.filter((a) => a.nickname.toLowerCase().includes(q) || a.username.toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q) || (a.phone || '').includes(q))
-}
-
 async function loadAttendees() {
   searchLoading.value = true
   try {
     const res = await getAttendees({ nickname: keyword.value.trim() || undefined, size: 100 })
     attendees.value = res.records
   } catch {
-    attendees.value = filterDemo(keyword.value)
+    attendees.value = []
+    ElMessage.error('加载参会人失败')
   } finally {
     searchLoading.value = false
   }
@@ -68,7 +56,7 @@ async function loadInviteLink() {
         storeInviteToken(props.eventId, res.token)
       }
     } catch {
-      /* demo */
+      // 接口失败时使用本地 token 生成二维码
     }
     linkData.value = await buildInviteLinkData(props.eventId, props.eventTitle, token || undefined)
   } catch {

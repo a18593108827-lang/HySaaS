@@ -33,7 +33,7 @@ export function generateQrcode(id: number | string) {
   return request.post<unknown, CheckinQrcodeResult>(`/enterprise/events/${id}/qrcode`)
 }
 
-export function getRegistrations(eventId: number | string, params?: { status?: string }) {
+export function getRegistrations(eventId: number | string, params?: { status?: string; page?: number; size?: number }) {
   return request.get<unknown, PageResult<Registration>>(`/enterprise/events/${eventId}/registrations`, { params })
 }
 
@@ -42,7 +42,11 @@ export function auditRegistration(id: number | string, status: 'APPROVED' | 'REJ
 }
 
 export function getCheckinList(eventId: number | string) {
-  return request.get(`/enterprise/events/${eventId}/checkin`)
+  return request.get<unknown, { count?: number; total?: number; records?: { userId: number; name: string; source: string; checkinTime: string }[] }>(`/enterprise/events/${eventId}/checkin`)
+}
+
+export function proxyCheckin(eventId: number | string, registrationId: number | string) {
+  return request.post(`/enterprise/events/${eventId}/checkin/registrations/${registrationId}`)
 }
 
 export function getPapers(params?: { status?: string }) {

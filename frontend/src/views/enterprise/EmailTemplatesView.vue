@@ -48,13 +48,8 @@ async function load() {
   try {
     list.value = await getEmailTemplates({ eventId: eventId.value })
   } catch {
-    list.value = Object.entries(codeNames).map(([code, name], i) => ({
-      id: i + 1,
-      code,
-      name,
-      subject: name,
-      content: `尊敬的 {{name}}，关于 {{eventName}}：{{status}}`,
-    }))
+    list.value = []
+    ElMessage.error('加载邮件模板失败')
   } finally {
     loading.value = false
   }
@@ -67,6 +62,7 @@ async function loadLogs() {
     logs.value = res.records
   } catch {
     logs.value = []
+    ElMessage.error('加载发信记录失败')
   } finally {
     logLoading.value = false
   }
