@@ -1,28 +1,25 @@
-package com.hysaas.invoice.entity;
+package com.hysaas.message.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("inv_invoice")
-public class InvInvoice {
+@TableName("msg_email_log")
+public class MsgEmailLog {
 
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private Long tenantId;
-    private Long userId;
-    private Long orderId;
-    private String title;
-    private String taxNo;
-    private String email;
-    private BigDecimal amount;
+    private Long eventId;
+    private String code;
+    private String recipient;
+    private String subject;
     private String status;
-    private String fileUrl;
+    private String errorMsg;
+    private Integer retryCount;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

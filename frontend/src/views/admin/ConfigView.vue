@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getGlobalConfig, updateGlobalConfig } from '@/api/admin'
+import { getGlobalConfig, updateGlobalConfig, testSmtpEmail, getAdminEmailLogs } from '@/api/admin'
 
 const loading = ref(false)
 const saving = ref(false)
+const testing = ref(false)
+const testTo = ref('')
+const logLoading = ref(false)
+const logs = ref<{ id: number; code: string; recipient: string; subject: string; status: string; errorMsg?: string; retryCount: number; createdAt: string }[]>([])
 const form = ref({
   smtpHost: '',
   smtpPort: '465',
@@ -31,6 +35,18 @@ async function load() {
   }
 }
 
+async function loadLogs() {
+  logLoading.value = true
+  try {
+    const res = await getAdminEmailLogs({ page: 0, size: 20 })
+    logs.value = res.records
+  } catch {
+    logs.value = []
+  } finally {
+    logLoading.value = false
+  }
+}
+
 async function save() {
   saving.value = true
   try {
@@ -43,7 +59,27 @@ async function save() {
   }
 }
 
-onMounted(load)
+async function testEmail() {
+  if (!testTo.value) {
+    ElMessage.warning('请输入测试邮箱')
+    return
+  }
+  testing.value = true
+  try {
+    await testSmtpEmail(testTo.value)
+    ElMessage.success('测试邮件已发送')
+    loadLogs()
+  } catch {
+    return
+  } finally {
+    testing.value = false
+  }
+}
+
+onMounted(() => {
+  load()
+  loadLogs()
+})
 </script>
 
 <template>
@@ -65,6 +101,10 @@ onMounted(load)
       </el-form-item>
       <el-form-item label="密码">
         <el-input v-model="form.smtpPass" type="password" show-password />
+      </el-form-item>
+      <el-form-item label="测试邮箱">
+        <el-input v-model="testTo" placeholder="收件地址" style="width: 220px; margin-right: 8px" />
+        <el-button :loading="testing" @click="testEmail">发送测试</el-button>
       </el-form-item>
 
       <el-divider content-position="left">支付宝</el-divider>
@@ -96,5 +136,14 @@ onMounted(load)
         <el-button type="primary" :loading="saving" @click="save">保存配置</el-button>
       </el-form-item>
     </el-form>
+
+    <el-divider content-position="left">发信记录</el-divider>
+    <el-table v-loading="logLoading" :data="logs" border stripe style="max-width: 960px">
+      <el-table-column prop="createdAt" label="时间" width="170" />
+      <el-table-column prop="code" label="编码" width="140" />
+      <el-table-column prop="recipient" label="收件人" min-width="160" />
+      <el-table-column prop="status" label="状态" width="80" />
+      <el-table-column prop="errorMsg" label="错误" min-width="180" show-overflow-tooltip />
+    </el-table>
   </div>
 </template>

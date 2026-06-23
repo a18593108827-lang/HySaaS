@@ -20,6 +20,7 @@ import com.hysaas.event.mapper.EvtEventMapper;
 import com.hysaas.event.mapper.EvtRegistrationMapper;
 import com.hysaas.system.entity.SysUser;
 import com.hysaas.system.mapper.SysUserMapper;
+import com.hysaas.message.service.EmailService;
 import com.hysaas.system.support.EnterpriseContext;
 import com.hysaas.system.support.PortalContext;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -45,6 +48,7 @@ public class RegistrationService {
     private final SysUserMapper sysUserMapper;
     private final EnterpriseContext enterpriseContext;
     private final PortalContext portalContext;
+    private final EmailService emailService;
     private final @Lazy PayOrderService payOrderService;
 
     public PageResult<RegistrationVO> pageByEvent(Long eventId, String status, Integer page, Integer size) {
@@ -78,6 +82,7 @@ public class RegistrationService {
         }
         registration.setStatus(status);
         evtRegistrationMapper.updateById(registration);
+        sendRegistrationAuditEmail(registration, status);
         return toVO(registration);
     }
 
@@ -99,6 +104,9 @@ public class RegistrationService {
             EvtRegistration registration = buildRegistration(event, attendee, autoApprove ? "APPROVED" : "PENDING", "INVITE");
             applyAttendeeProfile(registration, attendee);
             evtRegistrationMapper.insert(registration);
+            if (autoApprove) {
+                sendRegistrationAuditEmail(registration, "APPROVED");
+            }
             invited++;
         }
         EventInviteResultVO result = new EventInviteResultVO();
@@ -235,6 +243,37 @@ public class RegistrationService {
         registration.setEmail(StringUtils.hasText(attendee.getEmail()) ? attendee.getEmail() : attendee.getUsername());
         registration.setPhone(attendee.getPhone());
         registration.setMemberType("普通会员");
+    }
+
+    private void sendRegistrationAuditEmail(EvtRegistration registration, String status) {
+        EvtEvent event = evtEventMapper.selectById(registration.getEventId());
+        if (event == null) {
+            return;
+        }
+        String email = registrationEmailOf(registration);
+        if (!StringUtils.hasText(email)) {
+            return;
+        }
+        Map<String, String> vars = new HashMap<>();
+        vars.put("name", StringUtils.hasText(registration.getName()) ? registration.getName() : "");
+        vars.put("eventName", event.getTitle());
+        vars.put("status", "APPROVED".equals(status) ? "已通过" : "已拒绝");
+        String code = "APPROVED".equals(status) ? "REG_APPROVED" : "REG_REJECTED";
+        emailService.sendTemplate(registration.getTenantId(), registration.getEventId(), code, email, vars);
+    }
+
+    private String registrationEmailOf(EvtRegistration registration) {
+        if (StringUtils.hasText(registration.getEmail())) {
+            return registration.getEmail();
+        }
+        if (registration.getUserId() == null) {
+            return null;
+        }
+        SysUser user = sysUserMapper.selectById(registration.getUserId());
+        if (user == null) {
+            return null;
+        }
+        return StringUtils.hasText(user.getEmail()) ? user.getEmail() : user.getUsername();
     }
 
     private String resolveRegistrationEmail(String requestEmail, SysUser user) {

@@ -52,3 +52,11 @@ export function getGlobalConfig() {
 export function updateGlobalConfig(data: Record<string, string>) {
   return request.put('/admin/config', data)
 }
+
+export function testSmtpEmail(to: string) {
+  return request.post('/admin/config/test-email', { to })
+}
+
+export function getAdminEmailLogs(params?: { page?: number; size?: number }) {
+  return request.get<unknown, { records: { id: number; code: string; recipient: string; subject: string; status: string; errorMsg?: string; retryCount: number; createdAt: string }[]; total: number }>('/admin/config/email-logs', { params })
+}

@@ -22,6 +22,8 @@ services:
       - ./sql/V8__event_registration_fee.sql:/docker-entrypoint-initdb.d/V8__event_registration_fee.sql
       - ./sql/V9__paper_abstract.sql:/docker-entrypoint-initdb.d/V9__paper_abstract.sql
       - ./sql/V10__paper_draft_event_optional.sql:/docker-entrypoint-initdb.d/V10__paper_draft_event_optional.sql
+      - ./sql/V11__inv_invoice_email.sql:/docker-entrypoint-initdb.d/V11__inv_invoice_email.sql
+      - ./sql/V12__email_log.sql:/docker-entrypoint-initdb.d/V12__email_log.sql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]

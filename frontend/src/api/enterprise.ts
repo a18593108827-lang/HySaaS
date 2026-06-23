@@ -97,12 +97,16 @@ export function deleteHotelRoomType(hotelId: number, id: number) {
   return request.delete(`/enterprise/hotels/${hotelId}/room-types/${id}`)
 }
 
-export function getEmailTemplates() {
-  return request.get<unknown, { id: number; code: string; name: string; content: string }[]>('/enterprise/email-templates')
+export function getEmailTemplates(params?: { eventId?: number }) {
+  return request.get<unknown, { id: number; code: string; name: string; subject: string; content: string; eventId?: number }[]>('/enterprise/email-templates', { params })
 }
 
-export function updateEmailTemplate(id: number, content: string) {
-  return request.put(`/enterprise/email-templates/${id}`, { content })
+export function updateEmailTemplate(id: number, data: { subject?: string; content?: string }) {
+  return request.put(`/enterprise/email-templates/${id}`, data)
+}
+
+export function getEmailLogs(params?: { page?: number; size?: number }) {
+  return request.get<unknown, { records: { id: number; code: string; recipient: string; subject: string; status: string; errorMsg?: string; retryCount: number; createdAt: string }[]; total: number }>('/enterprise/email-templates/logs', { params })
 }
 
 export function getOrders(params?: { page?: number }) {

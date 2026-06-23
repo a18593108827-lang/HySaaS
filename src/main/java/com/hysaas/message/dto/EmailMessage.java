@@ -16,4 +16,5 @@ public class EmailMessage {
     private String code;
     private String to;
     private Map<String, String> vars;
+    private int retryCount;
 }

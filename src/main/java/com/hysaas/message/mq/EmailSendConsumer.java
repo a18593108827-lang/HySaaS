@@ -21,7 +21,7 @@ public class EmailSendConsumer implements RocketMQListener<EmailMessage> {
         try {
             emailService.resend(message);
         } catch (Exception e) {
-            log.error("email retry failed: {}", message.getCode(), e);
+            emailService.handleRetryFailed(message, e);
         }
     }
 }

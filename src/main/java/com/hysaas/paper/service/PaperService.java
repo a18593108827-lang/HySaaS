@@ -17,6 +17,7 @@ import com.hysaas.paper.dto.ReviewTaskVO;
 import com.hysaas.paper.entity.PaperReview;
 import com.hysaas.paper.entity.PaperReviewAssignment;
 import com.hysaas.paper.entity.PaperSubmission;
+import com.hysaas.message.service.EmailService;
 import com.hysaas.paper.mapper.PaperReviewAssignmentMapper;
 import com.hysaas.paper.mapper.PaperReviewMapper;
 import com.hysaas.paper.mapper.PaperSubmissionMapper;
@@ -36,7 +37,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -55,6 +58,7 @@ public class PaperService {
     private final PortalContext portalContext;
     private final EnterpriseRoleService enterpriseRoleService;
     private final FileStorageService fileStorageService;
+    private final EmailService emailService;
 
     public PageResult<PaperSubmissionVO> enterpriseList(String status, Integer page, Integer size) {
         enterpriseContext.requireTenantId();
@@ -92,6 +96,7 @@ public class PaperService {
         paper.setStatus("UNDER_REVIEW");
         paper.setUpdatedAt(LocalDateTime.now());
         paperSubmissionMapper.updateById(paper);
+        sendPaperEmail(paper, "PAPER_UNDER_REVIEW", "已进入评审");
         return toVO(paper);
     }
 
@@ -108,6 +113,21 @@ public class PaperService {
         paper.setStatus(status);
         paper.setUpdatedAt(LocalDateTime.now());
         paperSubmissionMapper.updateById(paper);
+        String code = switch (status) {
+            case "ACCEPTED" -> "PAPER_ACCEPTED";
+            case "REJECTED" -> "PAPER_REJECTED";
+            case "REVISION" -> "PAPER_REVISION";
+            default -> null;
+        };
+        if (code != null) {
+            String statusText = switch (status) {
+                case "ACCEPTED" -> "已录用";
+                case "REJECTED" -> "未通过评审";
+                case "REVISION" -> "需修改";
+                default -> status;
+            };
+            sendPaperEmail(paper, code, statusText);
+        }
         return toVO(paper);
     }
 
@@ -229,6 +249,8 @@ public class PaperService {
         if (paper == null || !user.getId().equals(paper.getUserId())) {
             throw new BizException(404, "稿件不存在");
         }
+        boolean notifySubmit = false;
+        String submitStatusText = "已提交";
         if ("DRAFT".equals(paper.getStatus())) {
             if (request == null || request.getEventId() == null) {
                 throw new BizException("请选择投稿活动");
@@ -244,6 +266,7 @@ public class PaperService {
             paper.setTenantId(event.getTenantId());
             paper.setStatus("SUBMITTED");
             paper.setSubmittedAt(LocalDateTime.now());
+            notifySubmit = true;
         } else if ("REVISION".equals(paper.getStatus())) {
             if (!StringUtils.hasText(paper.getFileKey())) {
                 throw new BizException("请先上传新版 PDF");
@@ -252,16 +275,45 @@ public class PaperService {
             paper.setVersion(paper.getVersion() + 1);
             paper.setSubmittedAt(LocalDateTime.now());
             clearReviewData(id);
+            notifySubmit = true;
+            submitStatusText = "已重投";
         } else {
             throw new BizException("当前状态不可提交");
         }
         paper.setUpdatedAt(LocalDateTime.now());
         paperSubmissionMapper.updateById(paper);
+        if (notifySubmit) {
+            sendPaperEmail(paper, "PAPER_SUBMITTED", submitStatusText);
+        }
         return toVO(paper);
     }
 
     private PaperSubmission requireOwnDraft(Long id, Long userId) {
         return requireOwnPaper(id, userId, Set.of("DRAFT"));
+    }
+
+    private void sendPaperEmail(PaperSubmission paper, String code, String status) {
+        String email = authorEmailOf(paper);
+        if (!StringUtils.hasText(email)) {
+            return;
+        }
+        EvtEvent event = paper.getEventId() == null ? null : evtEventMapper.selectById(paper.getEventId());
+        Map<String, String> vars = new HashMap<>();
+        vars.put("name", StringUtils.hasText(paper.getAuthor()) ? paper.getAuthor() : "");
+        vars.put("eventName", event != null ? event.getTitle() : "");
+        vars.put("status", status);
+        emailService.sendTemplate(paper.getTenantId(), paper.getEventId(), code, email, vars);
+    }
+
+    private String authorEmailOf(PaperSubmission paper) {
+        if (paper.getUserId() == null) {
+            return null;
+        }
+        SysUser user = sysUserMapper.selectById(paper.getUserId());
+        if (user == null) {
+            return null;
+        }
+        return StringUtils.hasText(user.getEmail()) ? user.getEmail() : user.getUsername();
     }
 
     private PaperSubmission requireOwnPaper(Long id, Long userId, Set<String> statuses) {

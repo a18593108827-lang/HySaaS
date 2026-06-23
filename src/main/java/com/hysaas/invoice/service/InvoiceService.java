@@ -7,9 +7,11 @@ import com.hysaas.invoice.dto.InvoiceCallbackRequest;
 import com.hysaas.invoice.dto.InvoiceVO;
 import com.hysaas.invoice.entity.InvInvoice;
 import com.hysaas.invoice.mapper.InvInvoiceMapper;
+import com.hysaas.message.service.EmailService;
 import com.hysaas.payment.entity.PayOrder;
 import com.hysaas.payment.mapper.PayOrderMapper;
 import com.hysaas.system.entity.SysUser;
+import com.hysaas.system.mapper.SysUserMapper;
 import com.hysaas.system.support.EnterpriseContext;
 import com.hysaas.system.support.PortalContext;
 import org.springframework.context.annotation.Lazy;
@@ -19,6 +21,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,17 +34,23 @@ public class InvoiceService {
     private final PortalContext portalContext;
     private final EnterpriseContext enterpriseContext;
     private final InvoiceAsyncService invoiceAsyncService;
+    private final EmailService emailService;
+    private final SysUserMapper sysUserMapper;
 
     public InvoiceService(InvInvoiceMapper invInvoiceMapper,
                           PayOrderMapper payOrderMapper,
                           PortalContext portalContext,
                           EnterpriseContext enterpriseContext,
-                          @Lazy InvoiceAsyncService invoiceAsyncService) {
+                          @Lazy InvoiceAsyncService invoiceAsyncService,
+                          EmailService emailService,
+                          SysUserMapper sysUserMapper) {
         this.invInvoiceMapper = invInvoiceMapper;
         this.payOrderMapper = payOrderMapper;
         this.portalContext = portalContext;
         this.enterpriseContext = enterpriseContext;
         this.invoiceAsyncService = invoiceAsyncService;
+        this.emailService = emailService;
+        this.sysUserMapper = sysUserMapper;
     }
 
     @Transactional
@@ -68,6 +77,7 @@ public class InvoiceService {
         invoice.setOrderId(order.getId());
         invoice.setTitle(request.getTitle());
         invoice.setTaxNo(request.getTaxNo());
+        invoice.setEmail(request.getEmail().trim().toLowerCase());
         invoice.setAmount(order.getAmount());
         invoice.setStatus("PENDING");
         invoice.setCreatedAt(LocalDateTime.now());
@@ -101,6 +111,29 @@ public class InvoiceService {
             order.setUpdatedAt(LocalDateTime.now());
             payOrderMapper.updateById(order);
         }
+        sendInvoiceReadyEmail(invoice);
+    }
+
+    private void sendInvoiceReadyEmail(InvInvoice invoice) {
+        if (!"ISSUED".equals(invoice.getStatus()) || !StringUtils.hasText(invoice.getFileUrl())) {
+            return;
+        }
+        String email = invoice.getEmail();
+        SysUser user = invoice.getUserId() == null ? null : sysUserMapper.selectById(invoice.getUserId());
+        if (!StringUtils.hasText(email) && user != null) {
+            email = StringUtils.hasText(user.getEmail()) ? user.getEmail() : user.getUsername();
+        }
+        if (!StringUtils.hasText(email)) {
+            return;
+        }
+        String name = "";
+        if (user != null) {
+            name = StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername();
+        }
+        Map<String, String> vars = new HashMap<>();
+        vars.put("name", name);
+        vars.put("fileUrl", invoice.getFileUrl());
+        emailService.sendTemplate(invoice.getTenantId(), null, "INVOICE_READY", email, vars);
     }
 
     public List<InvoiceVO> enterpriseList() {

@@ -15,9 +15,11 @@ import com.hysaas.payment.dto.PayCreateResultVO;
 import com.hysaas.payment.dto.PayOrderVO;
 import com.hysaas.payment.entity.PayOrder;
 import com.hysaas.payment.entity.PayTransaction;
+import com.hysaas.message.service.EmailService;
 import com.hysaas.payment.mapper.PayOrderMapper;
 import com.hysaas.payment.mapper.PayTransactionMapper;
 import com.hysaas.system.entity.SysUser;
+import com.hysaas.system.mapper.SysUserMapper;
 import com.hysaas.system.support.EnterpriseContext;
 import com.hysaas.system.support.PortalContext;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +33,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +52,8 @@ public class PayOrderService {
     private final HotelService hotelService;
     private final PayProperties payProperties;
     private final AlipayService alipayService;
+    private final EmailService emailService;
+    private final SysUserMapper sysUserMapper;
 
     public PayOrderService(PayOrderMapper payOrderMapper,
                            PayTransactionMapper payTransactionMapper,
@@ -57,7 +62,9 @@ public class PayOrderService {
                            RedissonClient redissonClient,
                            @Lazy HotelService hotelService,
                            PayProperties payProperties,
-                           AlipayService alipayService) {
+                           AlipayService alipayService,
+                           EmailService emailService,
+                           SysUserMapper sysUserMapper) {
         this.payOrderMapper = payOrderMapper;
         this.payTransactionMapper = payTransactionMapper;
         this.portalContext = portalContext;
@@ -66,6 +73,8 @@ public class PayOrderService {
         this.hotelService = hotelService;
         this.payProperties = payProperties;
         this.alipayService = alipayService;
+        this.emailService = emailService;
+        this.sysUserMapper = sysUserMapper;
     }
 
     public PageResult<PayOrderVO> portalOrders(Integer page, Integer size) {
@@ -232,6 +241,24 @@ public class PayOrderService {
         tx.setCreatedAt(LocalDateTime.now());
         payTransactionMapper.insert(tx);
         hotelService.onPaySuccess(order);
+        sendPaySuccessEmail(order);
+    }
+
+    private void sendPaySuccessEmail(PayOrder order) {
+        SysUser user = sysUserMapper.selectById(order.getUserId());
+        if (user == null) {
+            return;
+        }
+        String email = StringUtils.hasText(user.getEmail()) ? user.getEmail() : user.getUsername();
+        if (!StringUtils.hasText(email)) {
+            return;
+        }
+        Map<String, String> vars = new HashMap<>();
+        vars.put("name", StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getUsername());
+        vars.put("orderNo", order.getOrderNo());
+        vars.put("amount", order.getAmount() == null ? "" : order.getAmount().stripTrailingZeros().toPlainString());
+        vars.put("status", "支付成功");
+        emailService.sendTemplate(order.getTenantId(), null, "PAY_SUCCESS", email, vars);
     }
 
     private PayOrderVO toVO(PayOrder order) {
