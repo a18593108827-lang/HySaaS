@@ -1,6 +1,8 @@
 package com.hysaas.server.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
+import com.hysaas.common.constant.EnterpriseRoles;
 import com.hysaas.common.result.R;
 import com.hysaas.paper.dto.ReviewSubmitRequest;
 import com.hysaas.paper.dto.ReviewTaskVO;
@@ -19,7 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/enterprise/reviews")
 @RequiredArgsConstructor
-@SaCheckRole("ENTERPRISE")
+@SaCheckRole(value = {EnterpriseRoles.ADMIN, EnterpriseRoles.EXPERT}, mode = SaMode.OR)
 public class EnterpriseReviewController {
 
     private final PaperService paperService;

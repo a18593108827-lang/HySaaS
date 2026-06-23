@@ -1,6 +1,8 @@
 package com.hysaas.server.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
+import com.hysaas.common.constant.EnterpriseRoles;
 import com.hysaas.common.result.R;
 import com.hysaas.hotel.dto.HotelInfoPayload;
 import com.hysaas.hotel.dto.HotelInfoVO;
@@ -24,7 +26,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/enterprise/hotels")
 @RequiredArgsConstructor
-@SaCheckRole("ENTERPRISE")
+@SaCheckRole(value = {EnterpriseRoles.ADMIN, EnterpriseRoles.EVENT_STAFF}, mode = SaMode.OR)
 public class EnterpriseHotelController {
 
     private final HotelService hotelService;

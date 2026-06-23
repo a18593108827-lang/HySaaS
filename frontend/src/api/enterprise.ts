@@ -1,6 +1,10 @@
 import request from './request'
 import type { CheckinQrcodeResult, EnterpriseAttendee, EnterpriseAttendeePayload, EnterpriseMember, EnterpriseMemberPayload, EventInviteLinkResult, EventInvitePayload, EventInviteResult, EventItem, HotelBooking, HotelInfo, HotelInfoPayload, HotelRoomType, HotelRoomTypePayload, PageResult, PaperSubmission, PayOrder, Registration } from '@/types'
 
+export function getDashboardStats() {
+  return request.get<unknown, { events: number; pendingRegistrations: number; pendingPapers: number }>('/enterprise/dashboard/stats')
+}
+
 export function getEvents(params?: { page?: number; size?: number }) {
   return request.get<unknown, PageResult<EventItem>>('/enterprise/events', { params })
 }

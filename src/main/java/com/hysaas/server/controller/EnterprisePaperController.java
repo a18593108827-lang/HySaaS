@@ -1,6 +1,8 @@
 package com.hysaas.server.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
+import com.hysaas.common.constant.EnterpriseRoles;
 import com.hysaas.common.dto.PageResult;
 import com.hysaas.common.result.R;
 import com.hysaas.paper.dto.PaperSubmissionVO;
@@ -21,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/enterprise/papers")
 @RequiredArgsConstructor
-@SaCheckRole("ENTERPRISE")
+@SaCheckRole(value = {EnterpriseRoles.ADMIN, EnterpriseRoles.EVENT_STAFF}, mode = SaMode.OR)
 public class EnterprisePaperController {
 
     private final PaperService paperService;

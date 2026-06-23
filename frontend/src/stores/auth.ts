@@ -95,6 +95,10 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.roles.includes(role) ?? false
   }
 
+  function hasAnyRole(roles: string[]) {
+    return roles.some((r) => hasRole(r))
+  }
+
   function hasEventPerm(code: string) {
     return user.value?.eventPermissions.includes(code) ?? false
   }
@@ -112,6 +116,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     clearAuth,
     hasRole,
+    hasAnyRole,
     hasEventPerm,
   }
 })

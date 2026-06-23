@@ -1,6 +1,8 @@
 package com.hysaas.server.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
+import com.hysaas.common.constant.EnterpriseRoles;
 import com.hysaas.common.dto.PageResult;
 import com.hysaas.common.result.R;
 import com.hysaas.hotel.dto.HotelBookingVO;
@@ -16,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/enterprise/bookings")
 @RequiredArgsConstructor
-@SaCheckRole("ENTERPRISE")
+@SaCheckRole(value = {EnterpriseRoles.ADMIN, EnterpriseRoles.EVENT_STAFF, EnterpriseRoles.FINANCE}, mode = SaMode.OR)
 public class EnterpriseBookingController {
 
     private final HotelService hotelService;

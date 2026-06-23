@@ -110,7 +110,7 @@ router.beforeEach(async (to) => {
   }
 
   const roles = to.meta.roles as string[] | undefined
-  if (roles?.length && !roles.some((r) => auth.hasRole(r))) {
+  if (roles?.length && !auth.hasAnyRole(roles)) {
     return auth.homePath
   }
 

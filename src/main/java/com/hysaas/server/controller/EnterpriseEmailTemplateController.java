@@ -1,6 +1,8 @@
 package com.hysaas.server.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
+import com.hysaas.common.constant.EnterpriseRoles;
 import com.hysaas.common.dto.PageResult;
 import com.hysaas.common.result.R;
 import com.hysaas.message.dto.EmailLogVO;
@@ -23,7 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/enterprise/email-templates")
 @RequiredArgsConstructor
-@SaCheckRole("ENTERPRISE")
+@SaCheckRole(value = {EnterpriseRoles.ADMIN, EnterpriseRoles.EVENT_STAFF}, mode = SaMode.OR)
 public class EnterpriseEmailTemplateController {
 
     private final EmailTemplateService emailTemplateService;

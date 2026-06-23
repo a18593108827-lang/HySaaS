@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AppShell from './AppShell.vue'
+import { ENTERPRISE_NAV_ROLES } from '@/constants/enterpriseRoles'
+import { useAuthStore } from '@/stores/auth'
 
-const nav = computed(() => [
+const auth = useAuthStore()
+
+const allNav = [
   { path: '/enterprise/dashboard', label: '工作台' },
   { path: '/enterprise/members', label: '成员管理' },
   { path: '/enterprise/attendees', label: '参会账号' },
@@ -14,7 +18,14 @@ const nav = computed(() => [
   { path: '/enterprise/email-templates', label: '邮件模板' },
   { path: '/enterprise/finance/orders', label: '订单' },
   { path: '/enterprise/finance/invoices', label: '发票' },
-])
+]
+
+const nav = computed(() =>
+  allNav.filter((item) => {
+    const roles = ENTERPRISE_NAV_ROLES[item.path]
+    return !roles?.length || auth.hasAnyRole(roles)
+  }),
+)
 </script>
 
 <template>

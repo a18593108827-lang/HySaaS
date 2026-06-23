@@ -1,21 +1,25 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getTenants } from '@/api/admin'
+import { ElMessage } from 'element-plus'
+import { getAdminDashboardStats } from '@/api/admin'
 
+const loading = ref(false)
 const stats = ref({ pending: 0, approved: 0, total: 0 })
 
 onMounted(async () => {
+  loading.value = true
   try {
-    const res = await getTenants({ size: 1 })
-    stats.value.total = res.total
+    stats.value = await getAdminDashboardStats()
   } catch {
-    stats.value = { pending: 3, approved: 12, total: 15 }
+    ElMessage.error('加载统计数据失败')
+  } finally {
+    loading.value = false
   }
 })
 </script>
 
 <template>
-  <div>
+  <div v-loading="loading">
     <div class="page-header">
       <h1>平台概览</h1>
       <p>租户与全局配置运行状态</p>

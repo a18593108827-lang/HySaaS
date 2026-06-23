@@ -60,3 +60,7 @@ export function testSmtpEmail(to: string) {
 export function getAdminEmailLogs(params?: { page?: number; size?: number }) {
   return request.get<unknown, { records: { id: number; code: string; recipient: string; subject: string; status: string; errorMsg?: string; retryCount: number; createdAt: string }[]; total: number }>('/admin/config/email-logs', { params })
 }
+
+export function getAdminDashboardStats() {
+  return request.get<unknown, { pending: number; approved: number; total: number }>('/admin/dashboard/stats')
+}

@@ -1,6 +1,8 @@
 package com.hysaas.server.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
+import com.hysaas.common.constant.EnterpriseRoles;
 import com.hysaas.common.dto.PageResult;
 import com.hysaas.common.result.R;
 import com.hysaas.invoice.dto.InvoiceVO;
@@ -18,7 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/enterprise/finance")
 @RequiredArgsConstructor
-@SaCheckRole("ENTERPRISE")
+@SaCheckRole(value = {EnterpriseRoles.ADMIN, EnterpriseRoles.FINANCE}, mode = SaMode.OR)
 public class EnterpriseFinanceController {
 
     private final PayOrderService payOrderService;
