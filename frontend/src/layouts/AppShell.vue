@@ -210,11 +210,11 @@ async function onLogout() {
 }
 
 .sidebar {
-  width: 220px;
+  width: 232px;
   flex-shrink: 0;
   background: linear-gradient(180deg, var(--navy) 0%, var(--navy-mid) 100%);
   border-right: none;
-  padding: 1.25rem 0.75rem;
+  padding: 1.25rem 0.875rem;
   display: flex;
   flex-direction: column;
 }
@@ -266,7 +266,7 @@ async function onLogout() {
   width: 100%;
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius-sm);
-  font-size: 0.875rem;
+  font-size: var(--text-base);
   font-weight: 500;
   color: var(--sidebar-muted);
   text-decoration: none;
@@ -353,7 +353,7 @@ async function onLogout() {
 }
 
 .topbar {
-  height: 56px;
+  height: 52px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -364,7 +364,6 @@ async function onLogout() {
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  box-shadow: 0 1px 0 rgb(0 11 71 / 0.04);
 }
 
 .topbar-left {
@@ -376,8 +375,9 @@ async function onLogout() {
 
 .page-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--navy);
 }
 
@@ -394,9 +394,12 @@ async function onLogout() {
 
 .content {
   flex: 1;
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem 1.5rem;
   overflow: auto;
   background: var(--surface);
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .drawer-brand {

@@ -86,8 +86,8 @@ onMounted(load)
       <el-table-column prop="guestName" label="入住人" width="90" />
       <el-table-column prop="hotelName" label="酒店" min-width="160" show-overflow-tooltip />
       <el-table-column prop="roomTypeName" label="房型" width="110" />
-      <el-table-column prop="nights" label="晚数" width="60" align="center" />
-      <el-table-column prop="amount" label="金额(元)" width="90" align="right" />
+      <el-table-column prop="nights" label="晚数" width="60" />
+      <el-table-column prop="amount" label="金额(元)" width="90" />
       <el-table-column prop="status" label="状态" width="90">
         <template #default="{ row }">
           <el-tag :type="statusMap[row.status as HotelBooking['status']]?.type">{{ statusMap[row.status as HotelBooking['status']]?.label }}</el-tag>

@@ -4,15 +4,25 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Calendar, Location, Money, Document, House, Ticket } from '@element-plus/icons-vue'
 import { registerAttendee } from '@/api/public'
-import { getPortalEvent, submitRegistration, createPayOrder, mockPay } from '@/api/portal'
+import { getPortalEvent, submitRegistration } from '@/api/portal'
 import { useAuthStore } from '@/stores/auth'
+import PayProviderDialog from '@/components/PayProviderDialog.vue'
+import WechatQrDialog from '@/components/WechatQrDialog.vue'
+import { usePayFlow } from '@/composables/usePayFlow'
 import { validateEmail, validatePhone } from '@/utils/account'
-import { isMobilePayChannel, launchPay } from '@/utils/pay'
 import type { EventItem } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const {
+  providerDialogVisible,
+  qrDialogVisible,
+  qrCodeUrl,
+  payMethods,
+  startPay,
+  onProviderSelect,
+} = usePayFlow()
 
 const eventId = computed(() => String(route.params.id))
 const inviteToken = computed(() => (typeof route.query.inviteToken === 'string' ? route.query.inviteToken : undefined))
@@ -106,19 +116,14 @@ async function onSubmit() {
       ...(inviteToken.value ? { inviteToken: inviteToken.value } : {}),
     })
     if (result.payOrder) {
-      const mode = await launchPay(
-        () => createPayOrder({
-          bizType: 'REGISTRATION',
-          bizId: result.payOrder!.id,
-          channel: isMobilePayChannel() ? 'wap' : 'page',
-        }),
-        () => mockPay(result.payOrder!.id),
-      )
+      const mode = await startPay({
+        bizType: 'REGISTRATION',
+        bizId: result.payOrder.id,
+        onMockSuccess: () => router.push('/portal/events'),
+      })
       if (mode === 'mock') {
         ElMessage.success('报名已提交并完成支付，等待审核')
         router.push('/portal/events')
-      } else if (mode === 'alipay') {
-        ElMessage.success('正在跳转支付宝…')
       }
     } else {
       ElMessage.success('报名已提交，等待审核')
@@ -282,6 +287,12 @@ async function onSubmit() {
         </section>
       </div>
     </div>
+    <PayProviderDialog
+      v-model="providerDialogVisible"
+      :methods="payMethods"
+      @select="onProviderSelect"
+    />
+    <WechatQrDialog v-model="qrDialogVisible" :code-url="qrCodeUrl" />
   </div>
 </template>
 

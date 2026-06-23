@@ -9,6 +9,7 @@ import type { EnterpriseMember, PaperSubmission } from '@/types'
 const { page, size, total, resetPage } = usePagination()
 const loading = ref(false)
 const list = ref<PaperSubmission[]>([])
+const statusFilter = ref('')
 const assignDialog = ref(false)
 const assignSubmitting = ref(false)
 const expertLoading = ref(false)
@@ -16,15 +17,23 @@ const currentPaper = ref<PaperSubmission | null>(null)
 const expertId = ref<number>()
 const experts = ref<EnterpriseMember[]>([])
 
-const statusLabel: Record<string, string> = {
-  DRAFT: '草稿',
-  SUBMITTED: '已提交',
-  UNDER_REVIEW: '评审中',
-  REVIEW_DONE: '评审完成',
-  ACCEPTED: '已录用',
-  REJECTED: '已拒稿',
-  REVISION: '需修改',
-  RESUBMITTED: '已重投',
+const statusMap: Record<string, { label: string; type: '' | 'success' | 'warning' | 'danger' | 'info' }> = {
+  DRAFT: { label: '草稿', type: 'info' },
+  SUBMITTED: { label: '已提交', type: 'warning' },
+  UNDER_REVIEW: { label: '评审中', type: '' },
+  REVIEW_DONE: { label: '评审完成', type: 'warning' },
+  ACCEPTED: { label: '已录用', type: 'success' },
+  REJECTED: { label: '已拒稿', type: 'danger' },
+  REVISION: { label: '需修改', type: 'warning' },
+  RESUBMITTED: { label: '已重投', type: 'warning' },
+}
+
+function canAssign(row: PaperSubmission) {
+  return row.status === 'SUBMITTED' || row.status === 'RESUBMITTED'
+}
+
+function canFinalize(row: PaperSubmission) {
+  return row.status === 'REVIEW_DONE'
 }
 
 async function loadExperts() {
@@ -42,7 +51,11 @@ async function loadExperts() {
 async function load() {
   loading.value = true
   try {
-    const res = await getPapers({ page: page.value, size: size.value })
+    const res = await getPapers({
+      status: statusFilter.value || undefined,
+      page: page.value,
+      size: size.value,
+    })
     list.value = res.records
     total.value = res.total
   } catch {
@@ -51,6 +64,11 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function onFilterChange() {
+  resetPage()
+  load()
 }
 
 function onPageChange(p: number) {
@@ -108,23 +126,34 @@ onMounted(load)
       <h1>稿件管理</h1>
       <p>分配专家、终审录用/拒稿/需修改</p>
     </div>
+    <div class="toolbar">
+      <el-select v-model="statusFilter" placeholder="全部状态" clearable style="width: 140px" @change="onFilterChange">
+        <el-option v-for="(item, key) in statusMap" :key="key" :label="item.label" :value="key" />
+      </el-select>
+      <el-button @click="load">刷新</el-button>
+    </div>
     <el-empty v-if="!loading && !list.length" description="暂无稿件" />
-    <el-table v-else v-loading="loading" :data="list" border stripe>
-      <el-table-column prop="title" label="标题" min-width="200" />
-      <el-table-column prop="author" label="作者" width="100" />
+    <el-table v-else v-loading="loading" :data="list" border stripe style="width: 100%">
+      <el-table-column prop="title" label="标题" min-width="140" show-overflow-tooltip />
+      <el-table-column prop="author" label="作者" width="120" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="100">
-        <template #default="{ row }">{{ statusLabel[row.status] || row.status }}</template>
+        <template #default="{ row }">
+          <el-tag size="small" :type="statusMap[row.status]?.type">{{ statusMap[row.status]?.label || row.status }}</el-tag>
+        </template>
       </el-table-column>
       <el-table-column prop="version" label="版本" width="70" />
-      <el-table-column prop="submittedAt" label="提交时间" width="120" />
-      <el-table-column label="操作" width="280" fixed="right">
+      <el-table-column prop="submittedAt" label="提交时间" width="110" />
+      <el-table-column label="操作" min-width="240">
         <template #default="{ row }">
-          <el-button v-if="row.status === 'SUBMITTED' || row.status === 'RESUBMITTED'" link type="primary" @click="openAssign(row)">分配专家</el-button>
-          <template v-if="row.status === 'REVIEW_DONE'">
-            <el-button link type="success" @click="handleFinalize(row, 'ACCEPTED')">录用</el-button>
-            <el-button link type="danger" @click="handleFinalize(row, 'REJECTED')">拒稿</el-button>
-            <el-button link @click="handleFinalize(row, 'REVISION')">需修改</el-button>
-          </template>
+          <div v-if="canAssign(row) || canFinalize(row)" class="row-actions">
+            <el-button v-if="canAssign(row)" link type="primary" size="small" @click="openAssign(row)">分配专家</el-button>
+            <template v-if="canFinalize(row)">
+              <el-button link type="success" size="small" @click="handleFinalize(row, 'ACCEPTED')">录用</el-button>
+              <el-button link type="danger" size="small" @click="handleFinalize(row, 'REJECTED')">拒稿</el-button>
+              <el-button link type="primary" size="small" @click="handleFinalize(row, 'REVISION')">需修改</el-button>
+            </template>
+          </div>
+          <span v-else class="no-action">—</span>
         </template>
       </el-table-column>
     </el-table>
@@ -149,6 +178,18 @@ onMounted(load)
 </template>
 
 <style scoped>
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 4px;
+}
+
+.no-action {
+  color: var(--muted);
+}
+
 .empty-hint {
   margin: 0.75rem 0 0;
   font-size: 0.8125rem;

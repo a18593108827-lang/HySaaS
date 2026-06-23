@@ -14,6 +14,13 @@ public class GlobalConfigVO {
     private String alipayPublicKey = "";
     private String alipayNotifyUrl = "";
     private String alipayReturnUrl = "";
+    private String wechatMchId = "";
+    private String wechatAppId = "";
+    private String wechatApiV3Key = "";
+    private String wechatPrivateKey = "";
+    private String wechatSerialNo = "";
+    private String wechatNotifyUrl = "";
+    private String wechatReturnUrl = "";
     private String invoiceAppKey = "";
     private String invoiceAppSecret = "";
 }

@@ -2,9 +2,11 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { createHotelBooking, createPayOrder, getHotelRooms, mockPay } from '@/api/portal'
-import { isMobilePayChannel, launchPay } from '@/utils/pay'
+import { createHotelBooking, getHotelRooms } from '@/api/portal'
+import PayProviderDialog from '@/components/PayProviderDialog.vue'
+import WechatQrDialog from '@/components/WechatQrDialog.vue'
 import PortalBackBar from '@/components/PortalBackBar.vue'
+import { usePayFlow } from '@/composables/usePayFlow'
 
 interface RoomType {
   id: number
@@ -15,6 +17,14 @@ interface RoomType {
 
 const route = useRoute()
 const router = useRouter()
+const {
+  providerDialogVisible,
+  qrDialogVisible,
+  qrCodeUrl,
+  payMethods,
+  startPay,
+  onProviderSelect,
+} = usePayFlow()
 const eventId = String(route.params.eventId)
 const loading = ref(false)
 const submitting = ref(false)
@@ -38,19 +48,13 @@ async function onBook() {
   submitting.value = true
   try {
     const order = await createHotelBooking(eventId, { roomTypeId: selected.value, nights: nights.value })
-    const mode = await launchPay(
-      () => createPayOrder({
-        bizType: 'HOTEL',
-        bizId: order.id,
-        channel: isMobilePayChannel() ? 'wap' : 'page',
-      }),
-      () => mockPay(order.id),
-    )
+    const mode = await startPay({
+      bizType: 'HOTEL',
+      bizId: order.id,
+      onMockSuccess: () => router.push('/portal/orders'),
+    })
     if (mode === 'mock') {
       ElMessage.success('预订并支付成功')
-      router.push('/portal/orders')
-    } else if (mode === 'alipay') {
-      ElMessage.success('正在跳转支付宝…')
     }
   } catch {
     return
@@ -85,6 +89,12 @@ async function onBook() {
         <el-button type="primary" :loading="submitting" @click="onBook">确认预订</el-button>
       </el-form-item>
     </el-form>
+    <PayProviderDialog
+      v-model="providerDialogVisible"
+      :methods="payMethods"
+      @select="onProviderSelect"
+    />
+    <WechatQrDialog v-model="qrDialogVisible" :code-url="qrCodeUrl" />
   </div>
 </template>
 

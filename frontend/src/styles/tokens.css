@@ -4,13 +4,13 @@
   --primary: #2d5bff;
   --primary-hover: #2450e6;
   --primary-active: #1a45d4;
-  --primary-soft: rgb(45 91 255 / 0.12);
+  --primary-soft: rgb(45 91 255 / 0.1);
 
   --bg: #ffffff;
-  --surface: #f4f6fb;
+  --surface: #f0f2f8;
   --ink: #0b1242;
-  --muted: #64748b;
-  --border: #e5e8f0;
+  --muted: #5a6478;
+  --border: #e2e6ef;
   --border-focus: #93a8ff;
 
   --error: #e5484d;
@@ -26,12 +26,23 @@
   --sidebar-active: rgb(45 91 255 / 0.22);
   --sidebar-hover: rgb(255 255 255 / 0.06);
 
-  --radius: 16px;
-  --radius-sm: 12px;
+  --radius: 12px;
+  --radius-sm: 8px;
   --radius-pill: 999px;
-  --shadow-card: 0 4px 24px rgb(0 11 71 / 0.08);
-  --shadow-soft: 0 8px 32px rgb(0 11 71 / 0.12);
-  --font: "Plus Jakarta Sans", system-ui, sans-serif;
+  --shadow-card: 0 1px 3px rgb(0 11 71 / 0.06), 0 4px 16px rgb(0 11 71 / 0.04);
+  --shadow-soft: 0 8px 32px rgb(0 11 71 / 0.1);
+  --font: "Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+
+  --table-header-bg: #f8f9fc;
+  --table-row-hover: rgb(45 91 255 / 0.04);
+  --table-stripe: #fafbfe;
 
   --z-sticky: 10;
   --z-dropdown: 20;
@@ -45,7 +56,8 @@
   --el-color-primary-light-9: #e8edff;
   --el-color-primary-dark-2: #2450e6;
   --el-font-family: var(--font);
-  --el-border-radius-base: 12px;
+  --el-font-size-base: var(--text-base);
+  --el-border-radius-base: var(--radius-sm);
   --el-border-radius-round: var(--radius-pill);
   --el-bg-color: var(--bg);
   --el-bg-color-page: var(--surface);

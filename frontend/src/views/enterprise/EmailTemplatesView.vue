@@ -21,8 +21,8 @@ const { page: logPage, size: logSize, total: logTotal, resetPage: resetLogPage }
 const activeTab = ref('templates')
 const list = ref<Template[]>([])
 const logs = ref<{ id: number; code: string; recipient: string; subject: string; status: string; errorMsg?: string; createdAt: string }[]>([])
-const events = ref<{ id: number; title: string }[]>([])
-const eventId = ref<number | undefined>()
+const events = ref<{ id: string; title: string }[]>([])
+const eventId = ref('')
 const dialogVisible = ref(false)
 const editing = ref<Template | null>(null)
 
@@ -41,7 +41,7 @@ const codeNames: Record<string, string> = {
 async function loadEvents() {
   try {
     const res = await getEvents({ page: 0, size: 100 })
-    events.value = res.records.map((e) => ({ id: Number(e.id), title: e.title }))
+    events.value = res.records.map((e) => ({ id: String(e.id), title: e.title }))
   } catch {
     events.value = []
   }
@@ -50,7 +50,7 @@ async function loadEvents() {
 async function load() {
   loading.value = true
   try {
-    list.value = await getEmailTemplates({ eventId: eventId.value })
+    list.value = await getEmailTemplates(eventId.value ? { eventId: eventId.value } : undefined)
   } catch {
     list.value = []
   } finally {
@@ -127,7 +127,8 @@ onMounted(() => {
     <el-tabs v-model="activeTab">
       <el-tab-pane label="模板" name="templates">
         <div style="margin-bottom: 12px">
-          <el-select v-model="eventId" placeholder="租户默认模板" clearable style="width: 260px" @clear="eventId = undefined">
+          <el-select v-model="eventId" style="width: 260px">
+            <el-option label="租户默认模板" value="" />
             <el-option v-for="e in events" :key="e.id" :label="e.title" :value="e.id" />
           </el-select>
         </div>

@@ -105,7 +105,7 @@ export function deleteHotelRoomType(hotelId: number, id: number) {
   return request.delete(`/enterprise/hotels/${hotelId}/room-types/${id}`)
 }
 
-export function getEmailTemplates(params?: { eventId?: number }) {
+export function getEmailTemplates(params?: { eventId?: number | string }) {
   return request.get<unknown, { id: number; code: string; name: string; subject: string; content: string; eventId?: number }[]>('/enterprise/email-templates', { params })
 }
 

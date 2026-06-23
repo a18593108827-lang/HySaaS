@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
 import { createEvent, deleteEvent, getEvents, publishEvent, updateEvent } from '@/api/enterprise'
 import { useEventStore } from '@/stores/event'
 import CheckinQrcodeDialog from '@/components/CheckinQrcodeDialog.vue'
@@ -184,14 +183,6 @@ async function handlePublish(row: EventItem) {
   }
 }
 
-function handleMoreAction(command: string, row: EventItem) {
-  if (command === 'qrcode') openQrcode(row)
-  else if (command === 'invite') openInvite(row)
-  else if (command === 'publish') handlePublish(row)
-  else if (command === 'edit') openEdit(row)
-  else if (command === 'delete') handleDelete(row)
-}
-
 onMounted(load)
 </script>
 
@@ -205,9 +196,9 @@ onMounted(load)
       <el-button @click="load">刷新</el-button>
     </div>
     <el-empty v-if="!loading && !list.length" description="暂无活动" />
-    <el-table v-else v-loading="loading" :data="list" border stripe>
-      <el-table-column prop="title" label="活动名称" min-width="120" show-overflow-tooltip />
-      <el-table-column prop="location" label="地点" width="90" />
+    <el-table v-else v-loading="loading" :data="list" border stripe style="width: 100%">
+      <el-table-column prop="title" label="活动名称" width="150" show-overflow-tooltip />
+      <el-table-column prop="location" label="地点" width="100" show-overflow-tooltip />
       <el-table-column label="时间" width="190">
         <template #default="{ row }">{{ row.startTime }} ~ {{ row.endTime }}</template>
       </el-table-column>
@@ -223,27 +214,17 @@ onMounted(load)
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200" align="center" fixed="right">
+      <el-table-column label="操作" min-width="320" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="goRegistrations(row)">报名审核</el-button>
-          <el-button link type="primary" @click="goCheckin(row)">签到管理</el-button>
-          <el-dropdown trigger="click" @command="(cmd: string) => handleMoreAction(cmd, row)">
-            <el-button link type="primary">
-              更多
-              <el-icon class="more-icon"><ArrowDown /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="qrcode">获取二维码</el-dropdown-item>
-                <el-dropdown-item command="invite">邀请参会</el-dropdown-item>
-                <el-dropdown-item v-if="row.status === 'DRAFT'" command="publish">发布</el-dropdown-item>
-                <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                <el-dropdown-item command="delete" divided>
-                  <span class="danger-text">删除</span>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <div class="row-actions">
+            <el-button link type="primary" size="small" @click="goRegistrations(row)">报名</el-button>
+            <el-button link type="primary" size="small" @click="goCheckin(row)">签到</el-button>
+            <el-button link type="primary" size="small" @click="openQrcode(row)">二维码</el-button>
+            <el-button link type="primary" size="small" @click="openInvite(row)">邀请</el-button>
+            <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button v-if="row.status === 'DRAFT'" link type="primary" size="small" @click="handlePublish(row)">发布</el-button>
+            <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -309,12 +290,11 @@ onMounted(load)
   gap: 4px;
 }
 
-.more-icon {
-  margin-left: 2px;
-  font-size: 12px;
-}
-
-.danger-text {
-  color: var(--el-color-danger);
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 4px;
 }
 </style>

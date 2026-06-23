@@ -1,14 +1,24 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { applyInvoice, createPayOrder, getMyOrders, mockPay } from '@/api/portal'
+import { applyInvoice, getMyOrders } from '@/api/portal'
 import ListPagination from '@/components/ListPagination.vue'
+import PayProviderDialog from '@/components/PayProviderDialog.vue'
+import WechatQrDialog from '@/components/WechatQrDialog.vue'
+import { usePayFlow } from '@/composables/usePayFlow'
 import { usePagination } from '@/composables/usePagination'
-import { isMobilePayChannel, launchPay } from '@/utils/pay'
 import { invoiceStatusMap, payBizTypeMap, payStatusMap } from '@/utils/labels'
 import type { PayOrder } from '@/types'
 
 const { page, size, total, resetPage } = usePagination()
+const {
+  providerDialogVisible,
+  qrDialogVisible,
+  qrCodeUrl,
+  payMethods,
+  startPay,
+  onProviderSelect,
+} = usePayFlow()
 const loading = ref(false)
 const list = ref<PayOrder[]>([])
 const dialogVisible = ref(false)
@@ -43,20 +53,12 @@ function onSizeChange(s: number) {
 
 async function handlePay(row: PayOrder) {
   try {
-    const mode = await launchPay(
-      () => createPayOrder({
-        bizType: row.bizType,
-        bizId: row.id,
-        channel: isMobilePayChannel() ? 'wap' : 'page',
-      }),
-      () => mockPay(row.id),
-    )
-    if (mode === 'alipay') {
-      ElMessage.success('正在跳转支付宝…')
-      return
-    }
-    ElMessage.success('支付成功')
-    await load()
+    await startPay({
+      bizType: row.bizType,
+      bizId: row.id,
+      onMockSuccess: load,
+      onPaid: load,
+    })
   } catch {
     return
   }
@@ -104,7 +106,7 @@ onMounted(load)
       <el-table-column prop="bizType" label="类型" width="100">
         <template #default="{ row }">{{ payBizTypeMap[row.bizType] || row.bizType }}</template>
       </el-table-column>
-      <el-table-column prop="amount" label="金额(元)" width="100" align="right" />
+      <el-table-column prop="amount" label="金额(元)" width="100" />
       <el-table-column prop="status" label="支付状态" width="100">
         <template #default="{ row }">
           <el-tag :type="payStatusMap[row.status]?.type">{{ payStatusMap[row.status]?.label || row.status }}</el-tag>
@@ -132,6 +134,13 @@ onMounted(load)
       </el-table-column>
     </el-table>
     <ListPagination :total="total" :page="page" :size="size" @change="onPageChange" @size-change="onSizeChange" />
+
+    <PayProviderDialog
+      v-model="providerDialogVisible"
+      :methods="payMethods"
+      @select="onProviderSelect"
+    />
+    <WechatQrDialog v-model="qrDialogVisible" :code-url="qrCodeUrl" />
 
     <el-dialog v-model="dialogVisible" title="申请发票" width="480px">
       <p v-if="currentOrder" class="order-hint">

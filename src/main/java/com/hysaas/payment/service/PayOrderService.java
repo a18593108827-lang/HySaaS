@@ -12,6 +12,7 @@ import com.hysaas.hotel.entity.HotelBooking;
 import com.hysaas.hotel.service.HotelService;
 import com.hysaas.payment.dto.PayCreateRequest;
 import com.hysaas.payment.dto.PayCreateResultVO;
+import com.hysaas.payment.dto.PayMethodsVO;
 import com.hysaas.payment.dto.PayOrderVO;
 import com.hysaas.payment.entity.PayOrder;
 import com.hysaas.payment.entity.PayTransaction;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.wechat.pay.java.service.payments.model.Transaction;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -52,6 +54,7 @@ public class PayOrderService {
     private final HotelService hotelService;
     private final PayProperties payProperties;
     private final AlipayService alipayService;
+    private final WechatPayService wechatPayService;
     private final EmailService emailService;
     private final SysUserMapper sysUserMapper;
 
@@ -63,6 +66,7 @@ public class PayOrderService {
                            @Lazy HotelService hotelService,
                            PayProperties payProperties,
                            AlipayService alipayService,
+                           WechatPayService wechatPayService,
                            EmailService emailService,
                            SysUserMapper sysUserMapper) {
         this.payOrderMapper = payOrderMapper;
@@ -73,6 +77,7 @@ public class PayOrderService {
         this.hotelService = hotelService;
         this.payProperties = payProperties;
         this.alipayService = alipayService;
+        this.wechatPayService = wechatPayService;
         this.emailService = emailService;
         this.sysUserMapper = sysUserMapper;
     }
@@ -101,7 +106,15 @@ public class PayOrderService {
         return new PageResult<>(records, result.getTotal());
     }
 
-    public PayCreateResultVO createPay(PayCreateRequest request) {
+    public PayMethodsVO payMethods() {
+        PayMethodsVO vo = new PayMethodsVO();
+        vo.setMock(payProperties.isMockEnabled());
+        vo.setAlipay(!payProperties.isMockEnabled() && alipayService.isConfigured());
+        vo.setWechat(!payProperties.isMockEnabled() && wechatPayService.isConfigured());
+        return vo;
+    }
+
+    public PayCreateResultVO createPay(PayCreateRequest request, String clientIp) {
         SysUser user = portalContext.requireAttendee();
         PayOrder order = payOrderMapper.selectById(request.getBizId());
         if (order == null || !user.getId().equals(order.getUserId())) {
@@ -116,9 +129,25 @@ public class PayOrderService {
             vo.setPayUrl("/api/portal/pay/mock/" + order.getId());
             return vo;
         }
+        String provider = StringUtils.hasText(request.getProvider()) ? request.getProvider().toLowerCase() : "alipay";
+        if ("wechat".equals(provider)) {
+            return createWechatPay(order, request, clientIp);
+        }
         String form = alipayService.createPayForm(order, request.getChannel());
         vo.setPayMode("ALIPAY");
         vo.setPayForm(form);
+        return vo;
+    }
+
+    private PayCreateResultVO createWechatPay(PayOrder order, PayCreateRequest request, String clientIp) {
+        PayCreateResultVO vo = new PayCreateResultVO();
+        vo.setPayMode("WECHAT");
+        String channel = StringUtils.hasText(request.getChannel()) ? request.getChannel().toLowerCase() : "native";
+        switch (channel) {
+            case "h5" -> vo.setPayUrl(wechatPayService.createH5Pay(order, clientIp));
+            case "jsapi" -> vo.setWechatJsapi(wechatPayService.createJsapiPay(order, request.getOpenid()));
+            default -> vo.setCodeUrl(wechatPayService.createNativePay(order));
+        }
         return vo;
     }
 
@@ -203,6 +232,45 @@ public class PayOrderService {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return "failure";
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    @Transactional
+    public boolean handleWechatNotify(String body, String serial, String nonce, String signature,
+                                      String timestamp, String signatureType) {
+        Transaction transaction;
+        try {
+            transaction = wechatPayService.parseNotify(body, serial, nonce, signature, timestamp, signatureType);
+        } catch (BizException e) {
+            return false;
+        }
+        String outTradeNo = transaction.getOutTradeNo();
+        if (!StringUtils.hasText(outTradeNo)) {
+            return false;
+        }
+        if (!Transaction.TradeStateEnum.SUCCESS.equals(transaction.getTradeState())) {
+            return true;
+        }
+        RLock lock = redissonClient.getLock("pay:notify:" + outTradeNo);
+        try {
+            if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
+                return false;
+            }
+            PayOrder order = payOrderMapper.selectOne(new LambdaQueryWrapper<PayOrder>()
+                    .eq(PayOrder::getOrderNo, outTradeNo)
+                    .last("LIMIT 1"));
+            if (order == null) {
+                return false;
+            }
+            markPaid(order, transaction.getTransactionId(), body);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
         } finally {
             if (lock.isHeldByCurrentThread()) {
                 lock.unlock();

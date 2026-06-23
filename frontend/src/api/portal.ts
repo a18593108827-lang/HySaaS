@@ -55,7 +55,17 @@ export function getMyOrders(params?: { page?: number; size?: number }) {
   return request.get<unknown, PageResult<PayOrder>>('/portal/orders', { params })
 }
 
-export function createPayOrder(data: { bizType: string; bizId: number | string; channel?: string }) {
+export function getPayMethods() {
+  return request.get<unknown, { mock: boolean; alipay: boolean; wechat: boolean }>('/portal/pay/methods')
+}
+
+export function createPayOrder(data: {
+  bizType: string
+  bizId: number | string
+  provider?: string
+  channel?: string
+  openid?: string
+}) {
   return request.post<unknown, PayCreateResult>('/portal/pay/create', data)
 }
 

@@ -171,7 +171,7 @@ onMounted(load)
         </template>
       </el-table-column>
       <el-table-column prop="createdAt" label="申请时间" width="110" />
-      <el-table-column label="操作" min-width="340" align="center" fixed="right">
+      <el-table-column label="操作" min-width="340" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="router.push(`/admin/tenants/${row.id}`)">详情</el-button>
           <el-button link type="primary" @click="openEdit(row)">编辑</el-button>

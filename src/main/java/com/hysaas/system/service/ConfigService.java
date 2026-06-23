@@ -23,6 +23,8 @@ public class ConfigService {
     private static final List<String> CONFIG_KEYS = List.of(
             "smtpHost", "smtpPort", "smtpUser", "smtpPass",
             "alipayAppId", "alipayPrivateKey", "alipayPublicKey", "alipayNotifyUrl", "alipayReturnUrl",
+            "wechatMchId", "wechatAppId", "wechatApiV3Key", "wechatPrivateKey", "wechatSerialNo",
+            "wechatNotifyUrl", "wechatReturnUrl",
             "invoiceAppKey", "invoiceAppSecret"
     );
 

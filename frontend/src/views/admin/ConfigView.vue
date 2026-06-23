@@ -19,6 +19,13 @@ const form = ref({
   alipayPublicKey: '',
   alipayNotifyUrl: '',
   alipayReturnUrl: '',
+  wechatMchId: '',
+  wechatAppId: '',
+  wechatApiV3Key: '',
+  wechatPrivateKey: '',
+  wechatSerialNo: '',
+  wechatNotifyUrl: '',
+  wechatReturnUrl: '',
   invoiceAppKey: '',
   invoiceAppSecret: '',
 })
@@ -85,7 +92,7 @@ onMounted(() => {
   <div>
     <div class="page-header">
       <h1>全局配置</h1>
-      <p>SMTP、支付宝、票点云等平台级密钥</p>
+      <p>SMTP、支付宝、微信支付、票点云等平台级密钥</p>
     </div>
     <el-form v-loading="loading" label-width="120px" style="max-width: 560px">
       <el-divider content-position="left">邮件 SMTP</el-divider>
@@ -121,6 +128,29 @@ onMounted(() => {
       </el-form-item>
       <el-form-item label="同步跳转 URL">
         <el-input v-model="form.alipayReturnUrl" placeholder="支付完成后跳回，如 https://域名/portal/orders" />
+      </el-form-item>
+
+      <el-divider content-position="left">微信支付</el-divider>
+      <el-form-item label="商户号">
+        <el-input v-model="form.wechatMchId" placeholder="微信支付商户号" />
+      </el-form-item>
+      <el-form-item label="AppId">
+        <el-input v-model="form.wechatAppId" placeholder="公众号/移动应用 AppId" />
+      </el-form-item>
+      <el-form-item label="APIv3 密钥">
+        <el-input v-model="form.wechatApiV3Key" type="password" show-password placeholder="32 位 APIv3 密钥" />
+      </el-form-item>
+      <el-form-item label="商户私钥">
+        <el-input v-model="form.wechatPrivateKey" type="textarea" :rows="3" placeholder="apiclient_key.pem 内容" />
+      </el-form-item>
+      <el-form-item label="证书序列号">
+        <el-input v-model="form.wechatSerialNo" placeholder="商户 API 证书序列号" />
+      </el-form-item>
+      <el-form-item label="异步通知 URL">
+        <el-input v-model="form.wechatNotifyUrl" placeholder="留空则用 hysaas.pay.public-base-url + /pay/wechat/notify" />
+      </el-form-item>
+      <el-form-item label="H5 跳转 URL">
+        <el-input v-model="form.wechatReturnUrl" placeholder="H5 支付完成后跳回，如 https://域名/portal/orders" />
       </el-form-item>
 
       <el-divider content-position="left">票点云</el-divider>
